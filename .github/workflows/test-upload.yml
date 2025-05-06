@@ -1,0 +1,40 @@
+name: Test Upload
+
+on:
+  workflow_dispatch:
+    # Manual trigger
+
+jobs:
+  test-upload:
+    name: Test Upload to DigitalOcean
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create test files
+        run: |
+          mkdir -p build/test
+          echo "This is a test file for upload verification" > build/test/test-file.txt
+          echo "Another test file with timestamp $(date)" > build/test/test-file-$(date +%s).txt
+          ls -la build/test/
+
+      - name: Upload to DigitalOcean Spaces
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SECRET_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SECRET_KEY }}
+        run: |
+          aws --endpoint-url https://sfo3.digitaloceanspaces.com \
+            s3 cp build/test/ \
+            s3://devplan-cli.sfo3.digitaloceanspaces.com/test/ \
+            --recursive
+
+      - name: Verify upload
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SECRET_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SECRET_KEY }}
+        run: |
+          echo "Listing files in the test directory:"
+          aws --endpoint-url https://sfo3.digitaloceanspaces.com \
+            s3 ls s3://devplan-cli.sfo3.digitaloceanspaces.com/test/

@@ -94,7 +94,11 @@ func create() *cobra.Command {
 	return cmd
 }
 
-func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+func confirmRulesGeneration(
+	ideName string,
+	featurePrompt *documents.DocumentEntity,
+	repoSummary *artifacts.ArtifactRepoSummary,
+) error {
 	if featurePrompt == nil && repoSummary == nil {
 		return fmt.Errorf("neither feature prompt nor repo summary found for the feature and repository")
 	}
@@ -103,7 +107,7 @@ func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *art
 		return err
 	}
 	fmt.Printf(out.Highlight(fmt.Sprintf(
-		"\nCursor rules will be generated for the selected feature in the current repository %v.\n\n", root)))
+		"\n%s rules will be generated for the selected feature in the current repository %v.\n\n", ideName, root)))
 	prompt := promptui.Prompt{
 		Label:     "Create rules",
 		IsConfirm: true,
@@ -114,6 +118,19 @@ func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *art
 	}
 	if result != "y" {
 		return fmt.Errorf("aborted:" + result)
+	}
+	return nil
+}
+
+//func createJunieRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+//	if err := confirmRulesGeneration("Junie", featurePrompt, repoSummary); err != nil {
+//		return err
+//	}
+//}
+
+func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+	if err := confirmRulesGeneration("Cursor", featurePrompt, repoSummary); err != nil {
+		return err
 	}
 	rules := []ide.Rule{
 		{Name: "flow", Content: devFlowRule, Header: cursor.GetRuleHeader(cursor.Header{
@@ -141,7 +158,7 @@ func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *art
 		)})
 	}
 
-	err = cursor.CreateRules(rules)
+	err := cursor.CreateRules(rules)
 	if err != nil {
 		return err
 	}
