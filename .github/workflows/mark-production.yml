@@ -1,0 +1,49 @@
+name: Mark Version as Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to mark as production (without v prefix)'
+        required: true
+        type: string
+
+jobs:
+  mark-production:
+    name: Mark Version as Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create production version file
+        run: |
+          echo "${{ github.event.inputs.version }}" > production-version.txt
+
+      - name: Verify version exists
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          SPACE_NAME="${{ secrets.DO_SPACE_NAME }}"
+          SPACE_REGION="${{ secrets.DO_SPACE_REGION }}"
+          
+          # Check if the version directory exists in the Space
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${SPACE_NAME}.${SPACE_REGION}.digitaloceanspaces.com/releases/${VERSION}/")
+          
+          if [ "$STATUS_CODE" != "200" ]; then
+            echo "Error: Version ${VERSION} does not exist in the Space. Make sure it has been released first."
+            exit 1
+          fi
+          
+          echo "Successfully marked version ${VERSION} as production"
+
+      - name: Upload production version file to DigitalOcean Spaces
+        uses: BetaHuhn/do-spaces-action@v2
+        with:
+          access_key: ${{ secrets.DO_ACCESS_KEY }}
+          secret_key: ${{ secrets.DO_SECRET_KEY }}
+          space_name: ${{ secrets.DO_SPACE_NAME }}
+          space_region: ${{ secrets.DO_SPACE_REGION }}
+          source: production-version.txt
+          out_dir: releases/
+          permission: public-read

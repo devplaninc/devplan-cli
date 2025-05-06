@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/devplaninc/devplan-cli/internal/pb/cli";
+
+message Version {
+  string production_version = 1;
+}

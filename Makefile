@@ -13,7 +13,7 @@ all: generate
 build:
 	@echo "Building Devplan CLI..."
 	@mkdir -p out
-	@go build -o out/devplan-cli
+	@go build -ldflags="-X 'github.com/devplaninc/devplan-cli/internal/version.Version=dev' -X 'github.com/devplaninc/devplan-cli/internal/version.CommitHash=$(shell git rev-parse HEAD)' -X 'github.com/devplaninc/devplan-cli/internal/version.BuildDate=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")'" -o out/devplan-cli internal/cmd/main/main.go
 
 test:
 	@echo "Running tests..."
