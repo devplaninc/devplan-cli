@@ -37,4 +37,4 @@ jobs:
         run: |
           echo "Listing files in the test directory:"
           aws --endpoint-url https://sfo3.digitaloceanspaces.com \
-            s3 ls s3://devplan-cli.sfo3.digitaloceanspaces.com/test/
+            s3 ls s3://devplan-cli/test/
