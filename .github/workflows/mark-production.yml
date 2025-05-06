@@ -22,16 +22,17 @@ jobs:
           DEVPLAN_RELEASE_VERSION="${{ github.event.inputs.version }}" go run internal/tools/gen_version/main.go
 
       - name: Verify version exists
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SECRET_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SECRET_KEY }}
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          # Check if the version directory exists in the Space
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${SPACE_NAME}.${SPACE_REGION}.digitaloceanspaces.com/releases/${VERSION}/")
-          
-          if [ "$STATUS_CODE" != "200" ]; then
+          if ! aws --endpoint-url https://sfo3.digitaloceanspaces.com \
+              s3 ls "s3://devplan-cli/releases/versions/${VERSION}/" &>/dev/null; then
             echo "Error: Version ${VERSION} does not exist in the Space. Make sure it has been released first."
             exit 1
           fi
-          
+
           echo "Successfully verified version ${VERSION} exists"
 
       - name: Upload version file to DigitalOcean Spaces
