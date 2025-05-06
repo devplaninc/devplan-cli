@@ -1,0 +1,16 @@
+# Dev flow
+
+This document describes a typical expect development flow while implementing a feature/task/project.
+
+## General flow steps
+- Detect whether current feature is configured in the rule `@devplan_current_feature.mdc`. If the rule configured, it contains your current focus for the implementation. Assume that all discussions are related to that feature unless pointed otherwise.
+- Break down the feature into specific steps needed to implement it. Take into account the overview of the repository if present in `@devplan_repo_overview.mdc`.
+- Analyze existing code, identify exact changes to be made including files, methods/functions/varieables/etc to be updated. Check any missing dependencies. At the end you should have well understood execution plan and know specific changes to make.
+- Consult with feature definition and existing repository overview for generating an execution plan.
+- Implement the feature following current feature description and other rules. You don't need to confirm every code change with the user. Try implementing the feature to the extent possible.
+- Write unit tests for the standalone parts and make sure they pass according to the guildelines in the `@devplan_tests.mdc` if present.
+- Iterate on the implementation and update/refine execution plan as needed.
+- Do not ask user to confirm code changes, go on with implementation until the feature is implemented.
+- After implementation is done, review entire execution history to identify insights/findings and record them according to the `@devplan_insights.mdc`.
+
+*This workflow provides a general guideline. Adapt it based on your specific project needs and team practices.*

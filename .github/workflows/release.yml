@@ -1,0 +1,75 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          
+      - name: Get dependencies
+        run: go mod tidy
+        
+      - name: Build for multiple platforms
+        run: |
+          # Create build directory
+          mkdir -p build
+          
+          # Build for Linux
+          GOOS=linux GOARCH=amd64 go build -o build/devplan-linux-amd64
+          GOOS=linux GOARCH=arm64 go build -o build/devplan-linux-arm64
+          
+          # Build for macOS
+          GOOS=darwin GOARCH=amd64 go build -o build/devplan-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -o build/devplan-darwin-arm64
+          
+          # Build for Windows
+          GOOS=windows GOARCH=amd64 go build -o build/devplan-windows-amd64.exe
+          
+          # Create checksums
+          cd build
+          sha256sum * > checksums.txt
+          cd ..
+      
+      - name: Upload to DigitalOcean Spaces
+        uses: BetaHuhn/do-spaces-action@v2
+        with:
+          access_key: ${{ secrets.DO_ACCESS_KEY }}
+          secret_key: ${{ secrets.DO_SECRET_KEY }}
+          space_name: ${{ secrets.DO_SPACE_NAME }}
+          space_region: ${{ secrets.DO_SPACE_REGION }}
+          source: build/
+          out_dir: releases/${{ github.ref_name }}/
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/checksums.txt
+          asset_name: checksums.txt
+          asset_content_type: text/plain

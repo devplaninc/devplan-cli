@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/devplaninc/devplan-cli/internal/pb/config";
+
+// Config represents the configuration for the Devplan CLI
+message Config {
+  // API key for authenticating with the Devplan service
+  string api_key = 1;
+  
+  // Additional fields can be added here in the future
+  // For example:
+  // string default_ide = 2;
+  // bool auto_update = 3;
+}

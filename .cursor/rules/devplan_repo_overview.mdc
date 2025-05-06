@@ -1,0 +1,84 @@
+---
+description: High level overview of this repository
+globs: **/*
+alwaysApply: true
+---
+
+
+
+# High-Level Architectural Overview
+
+## 1. Technologies Used and Their Functional Roles
+
+- **Programming Language**:  
+  - Likely **Go** (based on `.gitignore` entries such as `*.exe`, `*.dll`, `go.work`, and typical Go project conventions).  
+  - The codebase probably leverages Go's strengths in CLI tools, concurrency, and static compilation.
+
+- **Core Functionality**:  
+  - **CLI Interface**: Implemented using Go, providing command-line interactions (`devplan-cli`).  
+  - **Configuration & Environment Management**: `.env` files suggest environment variable handling, possibly via libraries like `godotenv`.  
+  - **Dependency Management**: Use of `go.work` and `go.mod` (implied) for module and dependency management.
+
+- **Version Control & Repository Management**:  
+  - Managed via Git, with `.gitignore` configured for typical build artifacts and dependencies.
+
+- **Documentation**:  
+  - Markdown files (`README.md`) for user guidance.
+
+## 2. Most Important Folders Holding Specific Parts of the System
+
+- **Root Directory**:  
+  - Contains project metadata, `.gitignore`, and documentation (`README.md`).
+
+- **Source Code Folder (Implied)**:  
+  - Not explicitly listed, but typically named `cmd/`, `pkg/`, or `internal/` in Go projects.  
+  - Likely contains the main CLI entry point and core packages.
+
+- **Configuration Files**:  
+  - `.env` for environment variables.  
+  - `go.mod` and `go.sum` (not explicitly listed but standard in Go projects).
+
+- **Documentation**:  
+  - `README.md` for project overview and usage.
+
+## 3. Important Subfolders and Recommended Functionality
+
+- **`cmd/`** (if exists):  
+  - Entry point for CLI commands.  
+  - Each subfolder or file corresponds to a specific CLI command or subcommand.
+
+- **`pkg/` or `internal/`**:  
+  - Core libraries and business logic.  
+  - Functions for handling configuration, API interactions, data processing, etc.
+
+- **`config/`** (if exists):  
+  - Configuration schemas, default settings, environment variable handling.
+
+- **`scripts/`** (if exists):  
+  - Build, setup, or deployment scripts.
+
+- **`tests/`**:  
+  - Test cases and test utilities.
+
+## 4. Code Organization Insights
+
+- **Modular Structure**:  
+  - The project likely follows Go best practices with clear separation between CLI commands (`cmd/`) and core logic (`pkg/` or `internal/`).  
+  - This separation facilitates maintainability and testing.
+
+- **Configuration Management**:  
+  - Use of `.env` files suggests environment-specific configurations are externalized, enabling flexible deployment.
+
+- **Dependency Handling**:  
+  - Managed via `go.mod` and `go.sum`, ensuring reproducible builds.
+
+- **Documentation & Readability**:  
+  - The presence of `README.md` indicates an emphasis on user guidance and onboarding.
+
+- **Code Quality & Security**:  
+  - `.gitignore` excludes build artifacts and sensitive files, promoting clean repositories and security.
+
+---
+
+**Summary**:  
+This repository is a Go-based CLI tool (`devplan-cli`) structured with a clear separation of concerns. Core logic resides in dedicated packages, with command-line entry points in `cmd/`. Configuration is externalized via `.env`, and dependency management is handled through Go modules. The project emphasizes modularity, maintainability, and security, with documentation supporting ease of use.
