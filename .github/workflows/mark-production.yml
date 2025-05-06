@@ -19,14 +19,11 @@ jobs:
 
       - name: Create production version file
         run: |
-          echo "${{ github.event.inputs.version }}" > production-version.txt
+          DEVPLAN_RELEASE_VERSION="${{ github.event.inputs.version }}" go run internal/tools/gen_version/main.go
 
       - name: Verify version exists
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          SPACE_NAME="${{ secrets.DO_SPACE_NAME }}"
-          SPACE_REGION="${{ secrets.DO_SPACE_REGION }}"
-          
           # Check if the version directory exists in the Space
           STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${SPACE_NAME}.${SPACE_REGION}.digitaloceanspaces.com/releases/${VERSION}/")
           
@@ -35,15 +32,14 @@ jobs:
             exit 1
           fi
           
-          echo "Successfully marked version ${VERSION} as production"
+          echo "Successfully verified version ${VERSION} exists"
 
-      - name: Upload production version file to DigitalOcean Spaces
-        uses: BetaHuhn/do-spaces-action@v2
-        with:
-          access_key: ${{ secrets.DO_ACCESS_KEY }}
-          secret_key: ${{ secrets.DO_SECRET_KEY }}
-          space_name: ${{ secrets.DO_SPACE_NAME }}
-          space_region: ${{ secrets.DO_SPACE_REGION }}
-          source: production-version.txt
-          out_dir: releases/
-          permission: public-read
+      - name: Upload version file to DigitalOcean Spaces
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SECRET_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SECRET_KEY }}
+        run: |
+          aws --endpoint-url https://sfo3.digitaloceanspaces.com \
+            s3 cp version.json \
+            s3://devplan-cli/releases/version.json \
+            --acl public-read

@@ -28,3 +28,4 @@ bin/
 /.cursor/rules/devplan_current_feature.mdc
 /.idea/
 /build/
+/version.json
