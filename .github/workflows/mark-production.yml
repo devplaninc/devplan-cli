@@ -14,13 +14,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Create production version file
-        run: |
-          DEVPLAN_RELEASE_VERSION="${{ github.event.inputs.version }}" go run internal/tools/gen_version/main.go
-
       - name: Verify version exists
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SECRET_KEY_ID }}
@@ -34,6 +27,13 @@ jobs:
           fi
 
           echo "Successfully verified version ${VERSION} exists"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create production version file
+        run: |
+          DEVPLAN_RELEASE_VERSION="${{ github.event.inputs.version }}" go run internal/tools/gen_version/main.go
 
       - name: Upload version file to DigitalOcean Spaces
         env:
