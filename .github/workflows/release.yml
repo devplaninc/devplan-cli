@@ -21,7 +21,7 @@ jobs:
       - name: Configure AWS CLI for DigitalOcean Spaces
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.DO_SPACE_KEY_ID }}
+          aws-access-key-id: "DO8012KCF8JRYJ78NFQN"
           aws-secret-access-key: ${{ secrets.DO_SECRET_KEY }}
           aws-region: "sfo3"
 
