@@ -18,6 +18,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Configure AWS CLI for DigitalOcean Spaces
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.DO_SPACE_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DO_SECRET_KEY }}
+          aws-region: "sfo3"
+
       - name: Configure Git URL
         run: git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
 
@@ -38,13 +45,6 @@ jobs:
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           ./scripts/build_all.sh
-
-      - name: Configure AWS CLI for DigitalOcean Spaces
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.DO_SPACE_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.DO_SECRET_KEY }}
-          aws-region: "sfo3"
 
       - name: Upload file to DigitalOcean Spaces
         run: |
