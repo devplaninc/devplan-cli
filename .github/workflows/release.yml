@@ -46,7 +46,7 @@ jobs:
         run: |
           aws --endpoint-url https://sfo3.digitaloceanspaces.com \
             s3 cp build/ \
-            s3://devplan-cli.sfo3.digitaloceanspaces.com/releases/versions/${{ env.CLI_VERSION }}/ \
+            s3://devplan-cli/releases/versions/${{ env.CLI_VERSION }}/ \
             --recursive
 
       - name: Create Release
