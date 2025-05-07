@@ -21,12 +21,6 @@ if [[ ! "$TAG_NAME" =~ ^v ]]; then
 fi
 COMMIT="HEAD"
 
-# Check if tag exists locally
-if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-    echo "Error: Tag '$TAG_NAME' already exists locally"
-    exit 1
-fi
-
 # Check if tag exists remotely
 if git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q "$TAG_NAME"; then
     echo "Error: Tag '$TAG_NAME' already exists on remote"
