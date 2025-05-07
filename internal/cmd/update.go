@@ -45,7 +45,7 @@ func runUpdate(_ *cobra.Command, _ []string) {
 			fmt.Printf("Failed to update: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Successfully updated to version %s\n", out.H(toVersion))
+		out.Psuccessf("Successfully updated to version %s\n", out.H(toVersion))
 		return
 	}
 
@@ -57,7 +57,7 @@ func runUpdate(_ *cobra.Command, _ []string) {
 	}
 
 	if !hasUpdate {
-		out.Psuccessf("Version is up to date!")
+		out.Psuccessf("Version is up to date!\n")
 		return
 	}
 
@@ -67,5 +67,5 @@ func runUpdate(_ *cobra.Command, _ []string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Successfully updated to version %s\n", out.H(latestVersion))
+	out.Psuccessf("Successfully updated to the latest version %s\n", out.H(latestVersion))
 }
