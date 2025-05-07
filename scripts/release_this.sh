@@ -12,6 +12,13 @@ if [ -z "$1" ]; then
 fi
 
 TAG_NAME="$1"
+
+# Verify that TAG_NAME starts with "v"
+if [[ ! "$TAG_NAME" =~ ^v ]]; then
+    echo "Error: Tag name must start with 'v'"
+    echo "Usage: $0 <tag_name>"
+    exit 1
+fi
 COMMIT="HEAD"
 
 # Delete the tag if it exists (both local and remote)
