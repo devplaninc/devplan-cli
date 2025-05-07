@@ -24,9 +24,6 @@ func juniePathsReplace(str string) string {
 }
 
 func createJunieRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
-	if err := confirmRulesGeneration("Junie", featurePrompt, repoSummary); err != nil {
-		return err
-	}
 	rules := []ide.Rule{
 		{NoPrefix: true, Name: "guidelines", Content: juniePathsReplace(devFlowRule), Footer: junieAllOtherRules()},
 		{Name: "rules", Content: rulesRule},

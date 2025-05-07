@@ -8,6 +8,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	company2 "github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
@@ -29,7 +30,7 @@ const (
 var (
 	Cmd = create()
 
-	allowedIDEs = []string{"cursor", "junie"}
+	allowedIDEs = []string{ide.Cursor, ide.Junie}
 )
 
 func mainGroupID(companyID int32) string {
@@ -39,19 +40,31 @@ func mainGroupID(companyID int32) string {
 func create() *cobra.Command {
 	var ideName string
 	cmd := &cobra.Command{
-		Use:   "focus",
-		Short: "Focus on a specific feature of the project",
+		Use:     "focus",
+		Aliases: []string{"f"},
+		Short:   "Focus on a specific feature of the project",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// Validate mode flag if provided
-			if !slices.Contains(allowedIDEs, ideName) {
-				return fmt.Errorf("IDE must be provided, allowed values %v, got: %s", allowedIDEs, ideName)
+			if ideName != "" && !slices.Contains(allowedIDEs, ideName) {
+				return fmt.Errorf("allowed values for IDE are %v, got: %s", allowedIDEs, ideName)
 			}
 			return nil
 		},
-		Run: func(_ *cobra.Command, _ []string) {
-			repo, err := git.CurrentRepo()
-			check(err)
+		Run: func(c *cobra.Command, _ []string) {
+			repo := git.EnsureInRepo()
 			out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
+			ides, err := getIDEsToProvision(ideName)
+			check(err)
+			if len(ides) == 0 {
+				c.Printf("No IDEs auto detected or provided.\n")
+				prompt := promptui.Select{Label: "Select IDE", Items: allowedIDEs}
+				_, ideName, err = prompt.Run()
+				check(err)
+				if ideName == "" || !slices.Contains(allowedIDEs, ideName) {
+					out.Pfail("No valid ide selected. Exiting...")
+					os.Exit(1)
+				}
+			}
 
 			cl := devplan.NewClient(devplan.ClientConfig{})
 			self, err := cl.GetSelf()
@@ -92,17 +105,11 @@ func create() *cobra.Command {
 			sumResp := <-sumRespChan
 			summary := getMatchingSummary(repo, sumResp.GetSummaries())
 
-			switch ideName {
-			case "junie":
-				err = createJunieRules(featPrompt, summary)
-			case "cursor":
-				err = createCursorRules(featPrompt, summary)
-			default:
-				err = fmt.Errorf("unknown ide: %v", ideName)
+			check(confirmRulesGeneration(ides, featPrompt, summary))
+			for _, name := range ides {
+				fmt.Println()
+				processIDE(name, featPrompt, summary)
 			}
-			check(err)
-			check(git.UpdateIgnore())
-			fmt.Println(out.Successf("%s rules created successfully!", ideName))
 		},
 	}
 	cmd.Flags().StringVarP(
@@ -111,8 +118,30 @@ func create() *cobra.Command {
 	return cmd
 }
 
+func processIDE(ideName string, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) {
+	var err error
+	switch ideName {
+	case ide.Junie:
+		err = createJunieRules(featPrompt, summary)
+	case ide.Cursor:
+		err = createCursorRules(featPrompt, summary)
+	default:
+		err = fmt.Errorf("unknown ide: %v", ideName)
+	}
+	check(err)
+	check(git.UpdateIgnore())
+	fmt.Println(out.Successf("%s rules created successfully!", ideName))
+}
+
+func getIDEsToProvision(ideName string) ([]string, error) {
+	if ideName != "" {
+		return []string{ideName}, nil
+	}
+	return ide.Detect()
+}
+
 func confirmRulesGeneration(
-	ideName string,
+	ideNames []string,
 	featurePrompt *documents.DocumentEntity,
 	repoSummary *artifacts.ArtifactRepoSummary,
 ) error {
@@ -124,7 +153,8 @@ func confirmRulesGeneration(
 		return err
 	}
 	fmt.Printf(out.H(fmt.Sprintf(
-		"\n%s rules will be generated for the selected feature in the current repository %v.\n\n", ideName, root)))
+		"\nRules for %v will be generated for the selected feature in the current repository %v.\n\n",
+		strings.Join(ideNames, ", "), root)))
 	prompt := promptui.Prompt{
 		Label:     "Create rules",
 		IsConfirm: true,
@@ -252,7 +282,7 @@ func getSection(group *grouping.Group, key string) *grouping.GroupItem {
 
 func check(err error) {
 	if err != nil {
-		fmt.Println(out.Error(fmt.Sprintf("%v", err)))
+		fmt.Println(out.Failf("%v", err))
 		os.Exit(1)
 	}
 }

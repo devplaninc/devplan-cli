@@ -9,9 +9,6 @@ import (
 )
 
 func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
-	if err := confirmRulesGeneration("Cursor", featurePrompt, repoSummary); err != nil {
-		return err
-	}
 	rules := []ide.Rule{
 		{Name: "flow", Content: devFlowRule, Header: cursor.GetRuleHeader(cursor.Header{
 			Description: devFlowRuleDescription,

@@ -1,9 +1,12 @@
 package git
 
 import (
+	"errors"
 	"fmt"
+	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"os"
 	"strings"
 )
 
@@ -19,6 +22,25 @@ func (r RepoInfo) MatchesName(fullName string) bool {
 		}
 	}
 	return false
+}
+
+func IsNotInRepoErr(err error) bool {
+	return errors.Is(err, git.ErrRepositoryNotExists)
+}
+
+func EnsureInRepo() RepoInfo {
+	repo, err := CurrentRepo()
+	if err == nil {
+		return repo
+	}
+	if !IsNotInRepoErr(err) {
+		out.Failf("Failed to get current repository: %v\n", err)
+		os.Exit(1)
+	}
+	out.Pfail("Not in a git repository\n")
+	fmt.Printf("Please, clone a repository first or navigate to the cloned one and run the command from inside the git repository.\n")
+	os.Exit(1)
+	return RepoInfo{}
 }
 
 func CurrentRepo() (RepoInfo, error) {

@@ -3,19 +3,17 @@ package out
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/manifoldco/promptui"
 )
 
 var (
 	highlightStyle = lipgloss.NewStyle().Bold(true)
-	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
-	checkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	failStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
-	Check          = checkStyle.Render("✓")
-	Fail           = failStyle.Render("✗")
+	Check          = lipgloss.NewStyle().Bold(true).Render(promptui.IconGood)
+	Cross          = lipgloss.NewStyle().Bold(true).Render(promptui.IconBad)
 )
 
 const (
-	ColorGreen = "10"
+	ColorGreen = "#009900"
 )
 
 // H stands for highlight
@@ -37,9 +35,17 @@ func Successf(format string, a ...any) string {
 }
 
 func Failf(format string, a ...any) string {
-	return Fail + lipgloss.NewStyle().MarginLeft(1).Render(fmt.Sprintf(format, a...))
+	return Cross + " " + lipgloss.NewStyle().Render(fmt.Sprintf(format, a...))
 }
 
-func Error(s string) string {
-	return Fail + " " + errorStyle.Render(s)
+func Pfailf(format string, a ...any) {
+	fmt.Print(Failf(format, a...))
+}
+
+func Fail(s string) string {
+	return Cross + " " + lipgloss.NewStyle().Render(s)
+}
+
+func Pfail(s string) {
+	fmt.Print(Fail(s))
 }

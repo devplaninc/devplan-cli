@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/devplaninc/devplan-cli/internal/out"
+	"time"
 )
 
 var (
@@ -24,6 +25,7 @@ func Run(ctx context.Context, waitingMessage, successMessage string) error {
 		successMessage: successMessage,
 	})
 	go func() {
+		time.Sleep(5 * time.Second)
 		<-ctx.Done()
 		p.Send(done{})
 	}()
@@ -90,7 +92,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.err != nil {
-		return out.Error(m.err.Error())
+		return out.Fail(m.err.Error())
 	}
 	if m.done {
 		return out.Successf("%s\n", successStyle.Render(m.successMessage))
