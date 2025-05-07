@@ -21,9 +21,17 @@ if [[ ! "$TAG_NAME" =~ ^v ]]; then
 fi
 COMMIT="HEAD"
 
-# Delete the tag if it exists (both local and remote)
-git tag -d "$TAG_NAME" 2>/dev/null || true
-git push origin ":refs/tags/$TAG_NAME" 2>/dev/null || true
+# Check if tag exists locally
+if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+    echo "Error: Tag '$TAG_NAME' already exists locally"
+    exit 1
+fi
+
+# Check if tag exists remotely
+if git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q "$TAG_NAME"; then
+    echo "Error: Tag '$TAG_NAME' already exists on remote"
+    exit 1
+fi
 
 # Create new tag
 git tag -a "$TAG_NAME" "$COMMIT" -m "Release $TAG_NAME"
