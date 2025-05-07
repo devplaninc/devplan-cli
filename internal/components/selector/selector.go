@@ -17,12 +17,11 @@ type Props struct {
 const listHeight = 14
 
 var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	titleStyle        = lipgloss.NewStyle().MarginLeft(0).MarginTop(0).Bold(true)
+	itemStyle         = lipgloss.NewStyle().PaddingLeft(3)
+	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(0).Underline(true).Bold(true)
 	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 1, 1)
 )
 
 type item struct {
@@ -56,7 +55,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	fn := itemStyle.Render
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
+			return " > " + selectedItemStyle.Render(strings.Join(s, " "))
 		}
 	}
 	_, _ = fmt.Fprint(w, fn(str))
@@ -101,10 +100,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.choice.id != "" {
-		return quitTextStyle.Render(fmt.Sprintf("%v Selected %s: %s.", out.Check, m.title, out.Highlight(m.choice.title)))
+		return out.Successf(fmt.Sprintf("Selected %s: %s.\n", m.title, out.Highlight(m.choice.title)))
 	}
 	if m.quitting {
-		return quitTextStyle.Render(fmt.Sprintf("No %s selected", m.title))
+		return out.Failf(fmt.Sprintf("No %s selected\n", m.title))
 	}
 	return "\n" + m.list.View()
 }

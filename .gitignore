@@ -25,7 +25,9 @@ out/
 
 # Local tooling directory
 bin/
-/.cursor/rules/devplan_current_feature.mdc
 /.idea/
 /build/
 /version.json
+
+
+**/devplan_current_feature.md*

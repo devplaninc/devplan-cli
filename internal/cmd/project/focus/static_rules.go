@@ -14,5 +14,5 @@ var rulesRule string
 const currentFeatRuleDescription = "Description of the feature the implementation should focus on now"
 const devFlowRuleDescription = "A general guideline for the development workflow"
 const insightsRuleDescription = "Framework for systematic collection of insights from chat interactions, code execution, and pattern analysis."
-const generalRuleDescription = "Guidelines for creating and maintaining Cursor rules to ensure consistency and effectiveness."
+const generalRuleDescription = "Guidelines for creating and maintaining rules to ensure consistency and effectiveness."
 const repoOverviewRuleDescription = "High level overview of this repository"

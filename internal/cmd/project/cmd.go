@@ -38,7 +38,7 @@ func create() *cobra.Command {
 		Run: func(_ *cobra.Command, _ []string) {
 			repo, err := git.CurrentRepo()
 			check(err)
-			fmt.Printf("Cur repo: %+v\n", repo.FullNames[0])
+			out.Psuccessf("Cur repo: %+v\n", repo.FullNames[0])
 
 			cl := devplan.NewClient(devplan.ClientConfig{})
 			self, err := cl.GetSelf()

@@ -6,8 +6,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
-	"github.com/devplaninc/devplan-cli/internal/utils/ide"
-	"github.com/devplaninc/devplan-cli/internal/utils/ide/cursor"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/grouping"
@@ -28,7 +26,7 @@ const (
 var (
 	Cmd = create()
 
-	allowedIDEs = []string{"cursor"}
+	allowedIDEs = []string{"cursor", "junie"}
 )
 
 func mainGroupID(companyID int32) string {
@@ -50,7 +48,7 @@ func create() *cobra.Command {
 		Run: func(_ *cobra.Command, _ []string) {
 			repo, err := git.CurrentRepo()
 			check(err)
-			fmt.Printf("Cur repo: %+v\n", repo.FullNames[0])
+			out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
 
 			cl := devplan.NewClient(devplan.ClientConfig{})
 			self, err := cl.GetSelf()
@@ -81,11 +79,17 @@ func create() *cobra.Command {
 			check(err)
 			summary := getMatchingSummary(repo, sumResp.GetSummaries())
 
-			if ideName == "cursor" {
+			switch ideName {
+			case "junie":
+				err = createJunieRules(featPrompt, summary)
+			case "cursor":
 				err = createCursorRules(featPrompt, summary)
-				check(err)
-				fmt.Println(out.Highlight("Cursor rules created successfully!"))
+			default:
+				err = fmt.Errorf("unknown ide: %v", ideName)
 			}
+			check(err)
+			check(git.UpdateIgnore())
+			fmt.Println(out.Successf("%s rules created successfully!", ideName))
 		},
 	}
 	cmd.Flags().StringVarP(
@@ -118,49 +122,6 @@ func confirmRulesGeneration(
 	}
 	if result != "y" {
 		return fmt.Errorf("aborted:" + result)
-	}
-	return nil
-}
-
-//func createJunieRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
-//	if err := confirmRulesGeneration("Junie", featurePrompt, repoSummary); err != nil {
-//		return err
-//	}
-//}
-
-func createCursorRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
-	if err := confirmRulesGeneration("Cursor", featurePrompt, repoSummary); err != nil {
-		return err
-	}
-	rules := []ide.Rule{
-		{Name: "flow", Content: devFlowRule, Header: cursor.GetRuleHeader(cursor.Header{
-			Description: devFlowRuleDescription,
-		})},
-		{Name: "rules", Content: rulesRule, Header: cursor.GetRuleHeader(cursor.Header{
-			Description: generalRuleDescription, Globs: ".cursor/rules/*.mdc",
-		})},
-		{Name: "insights", Content: insightsRule, Header: cursor.GetRuleHeader(cursor.Header{
-			Description: insightsRuleDescription,
-		})},
-	}
-	if featurePrompt != nil {
-		rules = append(rules, ide.Rule{
-			Name:    "current_feature",
-			Content: featurePrompt.GetContent(),
-			Header: cursor.GetRuleHeader(cursor.Header{
-				Description: currentFeatRuleDescription,
-			}),
-		})
-	}
-	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
-		rules = append(rules, ide.Rule{Name: "repo_overview", Content: summary, Header: cursor.GetRuleHeader(
-			cursor.Header{Description: repoOverviewRuleDescription},
-		)})
-	}
-
-	err := cursor.CreateRules(rules)
-	if err != nil {
-		return err
 	}
 	return nil
 }

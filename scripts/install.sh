@@ -98,7 +98,7 @@ if [ "${VERSION}" = "latest" ]; then
     # Extract the production_version field from the JSON
     # This is a simple extraction that assumes the JSON is well-formed
     # and that the production_version field is the only field with that name
-    PRODUCTION_VERSION=$(echo "${VERSION_JSON}" | grep -o '"production_version"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
+    PRODUCTION_VERSION=$(echo "${VERSION_JSON}" | grep -o '"productionVersion"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
 
     if [ -z "${PRODUCTION_VERSION}" ]; then
         echo "Failed to extract production version from config. Exiting."
