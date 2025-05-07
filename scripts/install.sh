@@ -116,22 +116,58 @@ if [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
 fi
 
 DOWNLOAD_URL="https://devplan-cli.sfo3.digitaloceanspaces.com/releases/versions/${VERSION}/devplan-${OS}-${ARCH}"
+
+# Modify URL to point to the archived files
 if [ "${OS}" = "windows" ]; then
-    DOWNLOAD_URL="${DOWNLOAD_URL}.exe"
+    DOWNLOAD_URL="${DOWNLOAD_URL}.zip"
+else
+    DOWNLOAD_URL="${DOWNLOAD_URL}.tar.gz"
 fi
 
 echo "Downloading Devplan CLI ${VERSION} for ${OS}/${ARCH}..."
 echo "From: ${DOWNLOAD_URL}"
 
-# Download the binary
+# Create a temporary directory for downloading and extracting
+TEMP_DIR=$(mktemp -d)
+ARCHIVE_NAME="devplan-${OS}-${ARCH}"
+if [ "${OS}" = "windows" ]; then
+    ARCHIVE_NAME="${ARCHIVE_NAME}.zip"
+else
+    ARCHIVE_NAME="${ARCHIVE_NAME}.tar.gz"
+fi
+
+# Download the archive
 if command -v curl > /dev/null 2>&1; then
-    curl -L -o "${INSTALL_DIR}/${BINARY_NAME}" "${DOWNLOAD_URL}"
+    curl -L -o "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
 elif command -v wget > /dev/null 2>&1; then
-    wget -O "${INSTALL_DIR}/${BINARY_NAME}" "${DOWNLOAD_URL}"
+    wget -O "${TEMP_DIR}/${ARCHIVE_NAME}" "${DOWNLOAD_URL}"
 else
     echo "Neither curl nor wget found. Please install one of them and try again."
+    rm -rf "${TEMP_DIR}"
     exit 1
 fi
+
+# Extract the archive
+echo "Extracting archive..."
+if [ "${OS}" = "windows" ]; then
+    # Check if unzip is available
+    if ! command -v unzip > /dev/null 2>&1; then
+        echo "unzip command not found. Please install unzip and try again."
+        rm -rf "${TEMP_DIR}"
+        exit 1
+    fi
+    unzip -q "${TEMP_DIR}/${ARCHIVE_NAME}" -d "${TEMP_DIR}"
+    # Move the binary to the installation directory
+    mv "${TEMP_DIR}/devplan-${OS}-${ARCH}.exe" "${INSTALL_DIR}/${BINARY_NAME}"
+else
+    # Extract using tar
+    tar -xzf "${TEMP_DIR}/${ARCHIVE_NAME}" -C "${TEMP_DIR}"
+    # Move the binary to the installation directory
+    mv "${TEMP_DIR}/devplan-${OS}-${ARCH}" "${INSTALL_DIR}/${BINARY_NAME}"
+fi
+
+# Clean up temporary directory
+rm -rf "${TEMP_DIR}"
 
 # Make the binary executable
 if [ "${OS}" != "windows" ]; then
