@@ -42,7 +42,7 @@ func create() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "focus",
 		Aliases: []string{"f"},
-		Short:   "Focus on a specific feature of the project",
+		Short:   "Focus on a specific feature of a project",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// Validate mode flag if provided
 			if ideName != "" && !slices.Contains(allowedIDEs, ideName) {
@@ -64,9 +64,10 @@ func create() *cobra.Command {
 					out.Pfail("No valid ide selected. Exiting...")
 					os.Exit(1)
 				}
+				ides = []string{ideName}
 			}
 
-			cl := devplan.NewClient(devplan.ClientConfig{})
+			cl := devplan.NewClient(devplan.Config{})
 			self, err := cl.GetSelf()
 			check(err)
 			companies := self.GetOwnInfo().GetCompanyDetails()

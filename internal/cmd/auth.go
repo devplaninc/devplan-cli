@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
+	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/globals"
 	"io"
@@ -76,7 +77,8 @@ func runAuth(_ *cobra.Command, _ []string) {
 		fmt.Printf("Failed to request login link: %v\n", err)
 		return
 	}
-	loginURL := fmt.Sprintf("%s/user/apikey/approve/%s", getBaseURL(), requestID)
+	cl := devplan.NewClient(devplan.Config{})
+	loginURL := fmt.Sprintf("%s/user/apikey/approve/%s", cl.BaseURL, requestID)
 
 	// Print the login link to the user
 	fmt.Println("Please open the following link in your browser to authenticate:")
@@ -105,8 +107,9 @@ func runAuth(_ *cobra.Command, _ []string) {
 
 // requestLoginLink sends a request to the Devplan service to get a unique login link
 func requestLoginLink() (string, error) {
+	cl := devplan.NewClient(devplan.Config{})
 	name := keyName()
-	apiKeyRequestURL := fmt.Sprintf("%s/api/v1/apikey/request", getBaseURL())
+	apiKeyRequestURL := fmt.Sprintf("%s/api/v1/apikey/request", cl.BaseURL)
 	resp, err := http.Post(apiKeyRequestURL, "application/json", strings.NewReader(fmt.Sprintf(`{"name":"%s"}`, name)))
 	if err != nil {
 		return "", fmt.Errorf("failed to send login link request: %w", err)
@@ -136,7 +139,8 @@ func requestLoginLink() (string, error) {
 // waitForAuthentication polls the Devplan service to check if the login link has been clicked
 // and returns the API key when authentication is complete
 func waitForAuthentication(requestID string) (string, error) {
-	url := fmt.Sprintf("%s/api/v1/apikey/request/%s", getBaseURL(), requestID)
+	cl := devplan.NewClient(devplan.Config{})
+	url := fmt.Sprintf("%s/api/v1/apikey/request/%s", cl.BaseURL, requestID)
 
 	maxRetries := 60
 	for i := 0; i < maxRetries; i++ {
@@ -167,7 +171,7 @@ func waitForAuthentication(requestID string) (string, error) {
 		}
 
 		// Wait before retrying
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 
 	return "", fmt.Errorf("authentication timed out")

@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-type ClientConfig struct {
+type Config struct {
 	BaseURL string
 }
 
@@ -21,7 +21,7 @@ type Client struct {
 	client *http.Client
 }
 
-func NewClient(config ClientConfig) *Client {
+func NewClient(config Config) *Client {
 	baseURL := config.BaseURL
 	if baseURL == "" {
 		baseURL = GetBaseURL(globals.Domain)

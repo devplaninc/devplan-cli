@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/devplaninc/devplan-cli/internal/out"
-	"time"
 )
 
 var (
@@ -25,7 +24,6 @@ func Run(ctx context.Context, waitingMessage, successMessage string) error {
 		successMessage: successMessage,
 	})
 	go func() {
-		time.Sleep(5 * time.Second)
 		<-ctx.Done()
 		p.Send(done{})
 	}()

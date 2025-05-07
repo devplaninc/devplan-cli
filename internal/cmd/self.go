@@ -21,7 +21,7 @@ func init() {
 }
 
 func runSelf(_ *cobra.Command, _ []string) {
-	client := devplan.NewClient(devplan.ClientConfig{})
+	client := devplan.NewClient(devplan.Config{})
 	self, err := client.GetSelf()
 	if err != nil {
 		fmt.Printf("Failed to get self: %v\n", err)

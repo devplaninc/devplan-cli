@@ -19,8 +19,20 @@ func junieAllOtherRules() string {
 `, insightsRuleDescription, generalRuleDescription, repoOverviewRuleDescription, currentFeatRuleDescription)
 }
 
+var replacements = map[string]string{
+	"@devplan_current_feature.mdc": ".junie/devplan_current_feature.md",
+	"@devplan_rules.mdc":           ".junie/devplan_rules.md",
+	"@devplan_insights.mdc":        ".junie/devplan_insights.md",
+	"@devplan_repo_overview.mdc":   ".junie/devplan_repo_overview.md",
+	"@devplan_tests.mdc":           ".junie/devplan_tests.md",
+}
+
 func juniePathsReplace(str string) string {
-	return strings.ReplaceAll(str, "@devplan_current_feature.mdc", ".junie/devplan_current_feature.md")
+	result := str
+	for k, v := range replacements {
+		result = strings.ReplaceAll(result, k, v)
+	}
+	return result
 }
 
 func createJunieRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {

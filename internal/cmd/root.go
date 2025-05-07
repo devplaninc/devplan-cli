@@ -2,8 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/cmd/project"
-	"github.com/devplaninc/devplan-cli/internal/devplan"
+	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	"github.com/devplaninc/devplan-cli/internal/utils/globals"
 	"log/slog"
 	"os"
@@ -16,9 +15,10 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "devplan",
-		Short: "Devplan CLI - Development workflow automation tool",
-		Long: `Devplan CLI is a tool for automating development workflows.
-It helps with authentication, repository management, and IDE configuration.`,
+		Short: "Official cli for https://devplan.com",
+		Long: `Official cli for https://devplan.com.
+Integrates Devplan project management with local AI-powered IDEs.`,
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
 )
 
@@ -31,21 +31,14 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Add hidden flag for domain selection
 	rootCmd.PersistentFlags().StringVar(&globals.Domain, "domain", "", "domain to use (app, beta, local)")
 	if err := rootCmd.PersistentFlags().MarkHidden("domain"); err != nil {
 		fmt.Printf("Failed to initialize CLI (domain flag): %v\n)", err)
 		os.Exit(1)
 	}
-	rootCmd.AddCommand(project.Cmd)
+	rootCmd.AddCommand(focus.Cmd)
 }
 
-// getBaseURL returns the base URL for API calls based on the domain flag
-func getBaseURL() string {
-	return devplan.GetBaseURL(globals.Domain)
-}
-
-// initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -53,7 +46,6 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	// Create config directory if it doesn't exist
 	configDir := filepath.Join(home, ".devplan")
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		_ = os.MkdirAll(configDir, 0755)
