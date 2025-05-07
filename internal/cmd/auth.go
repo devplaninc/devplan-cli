@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/devplaninc/devplan-cli/internal/components/spinner"
+	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/globals"
 	"io"
 	"math/big"
@@ -76,23 +80,26 @@ func runAuth(_ *cobra.Command, _ []string) {
 
 	// Print the login link to the user
 	fmt.Println("Please open the following link in your browser to authenticate:")
-	fmt.Println(loginURL)
-	fmt.Println("\nWaiting for authentication to complete...")
-
-	// Wait for authentication to complete
-	apiKey, err := waitForAuthentication(requestID)
+	fmt.Print(lipgloss.NewStyle().Underline(true).Margin(1, 0, 1, 0).Render(loginURL))
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		apiKey, err := waitForAuthentication(requestID)
+		if err != nil {
+			fmt.Printf(out.Failf("%v\n", err))
+			os.Exit(1)
+		}
+		err = storeAPIKey(apiKey)
+		if err != nil {
+			fmt.Printf(out.Failf("%v\n", err))
+			os.Exit(1)
+		}
+		cancel()
+	}()
+	err = spinner.Run(ctx, "Waiting for authentication to complete", "Authenticated")
 	if err != nil {
-		fmt.Printf("Authentication failed: %v\n", err)
-		return
+		fmt.Println(out.Failf(err.Error()))
+		os.Exit(1)
 	}
-
-	// Store the API key
-	err = storeAPIKey(apiKey)
-	if err != nil {
-		fmt.Printf("Failed to store API key: %v\n", err)
-		return
-	}
-
 	fmt.Println("Authentication successful! API key has been stored.")
 }
 
@@ -190,4 +197,10 @@ func storeAPIKey(apiKey string) error {
 	}
 
 	return nil
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

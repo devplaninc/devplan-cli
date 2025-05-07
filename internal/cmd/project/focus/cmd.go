@@ -1,11 +1,14 @@
 package focus
 
 import (
+	"context"
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/components/selector"
+	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	company2 "github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/grouping"
@@ -75,8 +78,18 @@ func create() *cobra.Command {
 			check(err)
 			featPrompt, err := getFeaturePrompt(feature.GetId(), project.GetDocs())
 			check(err)
-			sumResp, err := cl.GetRepoSummaries(company.GetId())
+			ctx, cancel := context.WithCancel(context.Background())
+
+			sumRespChan := make(chan *company2.GetRepoSummariesResponse, 1)
+			go func() {
+				sumResp, err := cl.GetRepoSummaries(company.GetId())
+				check(err)
+				sumRespChan <- sumResp
+				cancel()
+			}()
+			err = spinner.Run(ctx, "Loading repo summaries", "Repo summaries loaded")
 			check(err)
+			sumResp := <-sumRespChan
 			summary := getMatchingSummary(repo, sumResp.GetSummaries())
 
 			switch ideName {

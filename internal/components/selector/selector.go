@@ -14,10 +14,10 @@ type Props struct {
 	Optional bool
 }
 
-const listHeight = 14
+const listHeight = 12
 
 var (
-	titleStyle        = lipgloss.NewStyle().MarginLeft(0).MarginTop(0).Bold(true)
+	titleStyle        = lipgloss.NewStyle().Bold(true)
 	itemStyle         = lipgloss.NewStyle().PaddingLeft(3)
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(0).Underline(true).Bold(true)
 	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
@@ -118,6 +118,7 @@ func runSelector(title string, items []item, props Props) (string, error) {
 	l.Title = fmt.Sprintf("Select %v", title)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
+	l.SetShowHelp(false)
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle

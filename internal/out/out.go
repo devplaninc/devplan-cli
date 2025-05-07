@@ -7,11 +7,15 @@ import (
 
 var (
 	highlightStyle = lipgloss.NewStyle().Bold(true)
-	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
+	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 	checkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
 	failStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true)
 	Check          = checkStyle.Render("✓")
 	Fail           = failStyle.Render("✗")
+)
+
+const (
+	ColorGreen = "10"
 )
 
 func Highlight(s string) string {
@@ -35,5 +39,5 @@ func Failf(format string, a ...any) string {
 }
 
 func Error(s string) string {
-	return errorStyle.Render(s)
+	return Fail + " " + errorStyle.Render(s)
 }
