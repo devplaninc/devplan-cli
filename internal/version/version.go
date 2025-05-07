@@ -26,8 +26,3 @@ func GetCommitHash() string {
 func GetBuildDate() string {
 	return BuildDate
 }
-
-// GetVersionInfo returns a formatted string with all version information
-func GetVersionInfo() string {
-	return "Version: " + Version + "\nCommit: " + CommitHash + "\nBuild Date: " + BuildDate
-}

@@ -1,14 +1,17 @@
 package updater
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Masterminds/semver/v3"
+	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/pb/cli"
 	"github.com/devplaninc/devplan-cli/internal/version"
 	"google.golang.org/protobuf/encoding/protojson"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
 )
 
@@ -76,6 +79,8 @@ func (c *Client) CheckForUpdate() (bool, string, error) {
 
 	currentVersion := version.GetVersion()
 	prodVer := ver.GetProductionVersion()
+	out.Psuccessf("Latest version: %s\n", prodVer)
+	out.Psuccessf("Current version: %s\n", currentVersion)
 	if currentVersion == "dev" {
 		return true, prodVer, nil
 	}
@@ -104,6 +109,36 @@ func isNewer(v1, v2 string) (bool, error) {
 
 // Update updates the binary to the specified version
 func (c *Client) Update(targetVersion string) error {
+	if runtime.GOOS == "windows" {
+		// On Windows, we need to use a different approach
+		// For now, we'll keep the original implementation for Windows
+		return c.updateWindows(targetVersion)
+	}
+
+	cmd := exec.Command("/bin/bash", "-c", `curl -fsSL https://beta.devplan.com/api/cli/install | bash`)
+
+	if targetVersion != "" {
+		cmd.Env = append(os.Environ(),
+			fmt.Sprintf("DEVPLAN_INSTALL_VERSION=%s", targetVersion))
+	}
+
+	// Capture stdout and stderr
+	var stderr bytes.Buffer
+	//cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdout = os.Stdout
+
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to update: %w\nstderr: %s", err, stderr.String())
+	}
+
+	return nil
+}
+
+// updateWindows updates the binary on Windows
+func (c *Client) updateWindows(targetVersion string) error {
 	// Get the URL for the binary
 	binaryURL := c.GetBinaryURL(targetVersion)
 
@@ -112,7 +147,9 @@ func (c *Client) Update(targetVersion string) error {
 	if err != nil {
 		return fmt.Errorf("failed to download update: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download update: %s", resp.Status)
@@ -123,7 +160,9 @@ func (c *Client) Update(targetVersion string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
-	defer os.Remove(tempFile.Name())
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(tempFile.Name())
 
 	// Copy the downloaded binary to the temporary file
 	_, err = io.Copy(tempFile, resp.Body)
@@ -147,29 +186,21 @@ func (c *Client) Update(targetVersion string) error {
 		return fmt.Errorf("failed to get path to current executable: %w", err)
 	}
 
-	// Replace the current executable with the new one
-	if runtime.GOOS == "windows" {
-		// On Windows, we can't replace the running executable directly
-		// So we rename the current executable and copy the new one
-		bakPath := execPath + ".bak"
-		if err := os.Rename(execPath, bakPath); err != nil {
-			return fmt.Errorf("failed to rename current executable: %w", err)
-		}
-
-		if err := copyFile(tempFile.Name(), execPath); err != nil {
-			// Try to restore the backup
-			_ = os.Rename(bakPath, execPath)
-			return fmt.Errorf("failed to copy new executable: %w", err)
-		}
-
-		// Remove the backup
-		_ = os.Remove(bakPath)
-	} else {
-		// On Unix-like systems, we can replace the running executable directly
-		if err := os.Rename(tempFile.Name(), execPath); err != nil {
-			return fmt.Errorf("failed to replace current executable: %w", err)
-		}
+	// On Windows, we can't replace the running executable directly
+	// So we rename the current executable and copy the new one
+	bakPath := execPath + ".bak"
+	if err := os.Rename(execPath, bakPath); err != nil {
+		return fmt.Errorf("failed to rename current executable: %w", err)
 	}
+
+	if err := copyFile(tempFile.Name(), execPath); err != nil {
+		// Try to restore the backup
+		_ = os.Rename(bakPath, execPath)
+		return fmt.Errorf("failed to copy new executable: %w", err)
+	}
+
+	// Remove the backup
+	_ = os.Remove(bakPath)
 
 	return nil
 }

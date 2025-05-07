@@ -100,7 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	if m.choice.id != "" {
-		return out.Successf(fmt.Sprintf("Selected %s: %s.\n", m.title, out.Highlight(m.choice.title)))
+		return out.Successf(fmt.Sprintf("Selected %s: %s.\n", m.title, out.H(m.choice.title)))
 	}
 	if m.quitting {
 		return out.Failf(fmt.Sprintf("No %s selected\n", m.title))

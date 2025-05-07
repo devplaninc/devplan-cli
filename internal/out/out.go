@@ -18,11 +18,13 @@ const (
 	ColorGreen = "10"
 )
 
-func Highlight(s string) string {
+// H stands for highlight
+func H(s string) string {
 	return highlightStyle.Render(s)
 }
 
-func Highlightf(format string, a ...any) string {
+// Hf highlights with formatting
+func Hf(format string, a ...any) string {
 	return highlightStyle.Render(fmt.Sprintf(format, a...))
 }
 
@@ -31,7 +33,7 @@ func Psuccessf(format string, a ...any) {
 }
 
 func Successf(format string, a ...any) string {
-	return Check + lipgloss.NewStyle().MarginLeft(1).Render(fmt.Sprintf(format, a...))
+	return Check + " " + lipgloss.NewStyle().Render(fmt.Sprintf(format, a...))
 }
 
 func Failf(format string, a ...any) string {

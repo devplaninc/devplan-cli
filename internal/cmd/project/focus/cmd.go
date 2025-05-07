@@ -123,7 +123,7 @@ func confirmRulesGeneration(
 	if err != nil {
 		return err
 	}
-	fmt.Printf(out.Highlight(fmt.Sprintf(
+	fmt.Printf(out.H(fmt.Sprintf(
 		"\n%s rules will be generated for the selected feature in the current repository %v.\n\n", ideName, root)))
 	prompt := promptui.Prompt{
 		Label:     "Create rules",

@@ -76,12 +76,12 @@ else
 fi
 
 # Set download URL
-VERSION="latest"
-if [ -n "$1" ]; then
-    VERSION="$1"
+# Use DEVPLAN_INSTALL_VERSION from environment if set, otherwise use command line argument or default to "latest"
+if [ -z "${DEVPLAN_INSTALL_VERSION}" ]; then
+    DEVPLAN_INSTALL_VERSION="latest"
 fi
 
-if [ "${VERSION}" = "latest" ]; then
+if [ "${DEVPLAN_INSTALL_VERSION}" = "latest" ]; then
     # Fetch the latest version from the config
     CONFIG_URL="https://devplan-cli.sfo3.digitaloceanspaces.com/releases/version.json"
     echo "Fetching latest version from ${CONFIG_URL}..."
@@ -105,17 +105,17 @@ if [ "${VERSION}" = "latest" ]; then
         exit 1
     else
         echo "Latest version is ${PRODUCTION_VERSION}"
-        VERSION="${PRODUCTION_VERSION}"
+        DEVPLAN_INSTALL_VERSION="${PRODUCTION_VERSION}"
     fi
 fi
 
 # Set up the installation directory based on OS and version
 if [ "${OS}" = "darwin" ] || [ "${OS}" = "linux" ]; then
-    INSTALL_DIR="${HOME}/.devplan/cli/versions/${VERSION}"
+    INSTALL_DIR="${HOME}/.devplan/cli/versions/${DEVPLAN_INSTALL_VERSION}"
     mkdir -p "${INSTALL_DIR}"
 fi
 
-DOWNLOAD_URL="https://devplan-cli.sfo3.digitaloceanspaces.com/releases/versions/${VERSION}/devplan-${OS}-${ARCH}"
+DOWNLOAD_URL="https://devplan-cli.sfo3.digitaloceanspaces.com/releases/versions/${DEVPLAN_INSTALL_VERSION}/devplan-${OS}-${ARCH}"
 
 # Modify URL to point to the archived files
 if [ "${OS}" = "windows" ]; then
@@ -124,7 +124,7 @@ else
     DOWNLOAD_URL="${DOWNLOAD_URL}.tar.gz"
 fi
 
-echo "Downloading Devplan CLI ${VERSION} for ${OS}/${ARCH}..."
+echo "Downloading Devplan CLI ${DEVPLAN_INSTALL_VERSION} for ${OS}/${ARCH}..."
 echo "From: ${DOWNLOAD_URL}"
 
 # Create a temporary directory for downloading and extracting

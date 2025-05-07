@@ -13,50 +13,39 @@ var (
 	updateCmd = &cobra.Command{
 		Use:   "update",
 		Short: "Update the CLI to the latest version",
-		Long: `Update the CLI to the latest production version or to a specific version.
+		Long: `Update the CLI to the latest available version or to a specific version.
 
-By default, this command will update to the latest production version.
+By default, this command will update to the latest available version.
 Use the --to flag to update to a specific version.`,
 		Run: runUpdate,
+		Example: `# Update to the latest version
+  devplan update
+
+# Update to a specific version (e.g. 0.1.0)
+  devplan update --to 0.1.0
+`,
 	}
 
 	// Flag to specify a specific version to update to
 	toVersion string
-
-	// Flag to list all available versions
-	listVersions bool
 )
 
 func init() {
 	updateCmd.Flags().StringVar(&toVersion, "to", "", "Update to a specific version")
-	updateCmd.Flags().BoolVar(&listVersions, "list", false, "List all available versions")
+
 	rootCmd.AddCommand(updateCmd)
 }
 
 func runUpdate(_ *cobra.Command, _ []string) {
 	client := &updater.Client{}
 
-	if listVersions {
-		versions, err := client.ListAvailableVersions()
-		if err != nil {
-			fmt.Printf("Failed to list available versions: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println("Available versions:")
-		for _, v := range versions {
-			fmt.Printf("  %s\n", v)
-		}
-		return
-	}
-
 	if toVersion != "" {
-		fmt.Printf("Updating to version %s...\n", out.Highlight(toVersion))
+		fmt.Printf("Updating to version %s...\n", out.H(toVersion))
 		if err := client.Update(toVersion); err != nil {
 			fmt.Printf("Failed to update: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Successfully updated to version %s\n", out.Highlight(toVersion))
+		fmt.Printf("Successfully updated to version %s\n", out.H(toVersion))
 		return
 	}
 
@@ -68,15 +57,15 @@ func runUpdate(_ *cobra.Command, _ []string) {
 	}
 
 	if !hasUpdate {
-		fmt.Printf("You are already using the latest version: %s\n", out.Highlight(version.GetVersion()))
+		out.Psuccessf("Version is up to date!")
 		return
 	}
 
-	fmt.Printf("Updating from %s to %s...\n", out.Highlight(version.GetVersion()), out.Highlight(latestVersion))
+	fmt.Printf("Updating from %s to %s...\n", out.H(version.GetVersion()), out.H(latestVersion))
 	if err := client.Update(latestVersion); err != nil {
 		fmt.Printf("Failed to update: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Successfully updated to version %s\n", out.Highlight(latestVersion))
+	fmt.Printf("Successfully updated to version %s\n", out.H(latestVersion))
 }

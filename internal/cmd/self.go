@@ -27,5 +27,5 @@ func runSelf(_ *cobra.Command, _ []string) {
 		fmt.Printf("Failed to get self: %v\n", err)
 		return
 	}
-	fmt.Printf("Self: %s\n", out.Highlight(self.GetOwnInfo().GetUser().GetEmail()))
+	fmt.Printf("Self: %s\n", out.H(self.GetOwnInfo().GetUser().GetEmail()))
 }
