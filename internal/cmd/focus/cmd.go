@@ -31,6 +31,10 @@ var (
 	Cmd = create()
 
 	allowedIDEs = []string{ide.Cursor, ide.Junie}
+	ideName     string
+	projectID   string
+	featureID   string
+	companyID   int32
 )
 
 func mainGroupID(companyID int32) string {
@@ -38,7 +42,6 @@ func mainGroupID(companyID int32) string {
 }
 
 func create() *cobra.Command {
-	var ideName string
 	cmd := &cobra.Command{
 		Use:     "focus",
 		Aliases: []string{"f"},
@@ -50,73 +53,93 @@ func create() *cobra.Command {
 			}
 			return nil
 		},
-		Run: func(c *cobra.Command, _ []string) {
-			repo := git.EnsureInRepo()
-			out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
-			ides, err := getIDEsToProvision(ideName)
-			check(err)
-			if len(ides) == 0 {
-				c.Printf("No IDEs auto detected or provided.\n")
-				prompt := promptui.Select{Label: "Select IDE", Items: allowedIDEs}
-				_, ideName, err = prompt.Run()
-				check(err)
-				if ideName == "" || !slices.Contains(allowedIDEs, ideName) {
-					out.Pfail("No valid ide selected. Exiting...")
-					os.Exit(1)
-				}
-				ides = []string{ideName}
-			}
-
-			cl := devplan.NewClient(devplan.Config{})
-			self, err := cl.GetSelf()
-			check(err)
-			companies := self.GetOwnInfo().GetCompanyDetails()
-			company, err := selector.Company(companies, selector.Props{})
-			check(err)
-			grResp, err := cl.GetGroup(company.GetId(), mainGroupID(company.GetId()))
-			check(err)
-			prResp, err := cl.GetCompanyProjects(company.GetId())
-			check(err)
-			var projects []*documents.ProjectEntity
-			for _, p := range prResp.GetProjects() {
-				if p.GetProject().GetDetails().GetStatus() != documents.ProjectStatus_DONE {
-					projects = append(projects, p.GetProject())
-				}
-			}
-			ordered := orderedProjects(grResp.GetGroup(), projects)
-			selectedPr, err := selector.Project(ordered, selector.Props{})
-			check(err)
-			project := getProjectWithDocs(selectedPr.GetId(), prResp.GetProjects())
-			features := getFeatures(project)
-			feature, err := selector.Feature(features, selector.Props{})
-			check(err)
-			featPrompt, err := getFeaturePrompt(feature.GetId(), project.GetDocs())
-			check(err)
-			ctx, cancel := context.WithCancel(context.Background())
-
-			sumRespChan := make(chan *company2.GetRepoSummariesResponse, 1)
-			go func() {
-				sumResp, err := cl.GetRepoSummaries(company.GetId())
-				check(err)
-				sumRespChan <- sumResp
-				cancel()
-			}()
-			err = spinner.Run(ctx, "Loading repo summaries", "Repo summaries loaded")
-			check(err)
-			sumResp := <-sumRespChan
-			summary := getMatchingSummary(repo, sumResp.GetSummaries())
-
-			check(confirmRulesGeneration(ides, featPrompt, summary))
-			for _, name := range ides {
-				fmt.Println()
-				processIDE(name, featPrompt, summary)
-			}
-		},
+		Run: runFocus,
 	}
 	cmd.Flags().StringVarP(
 		&ideName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(allowedIDEs, ", ")))
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Project id to focus on")
+	cmd.Flags().StringVarP(&featureID, "feature", "f", "", "Feature id to focus on")
+	cmd.Flags().Int32VarP(&companyID, "company", "c", -1, "Company id to focus on")
 
 	return cmd
+}
+
+func runFocus(c *cobra.Command, _ []string) {
+	repo := git.EnsureInRepo()
+	out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
+	ides, err := getIDEsToProvision(ideName)
+	check(err)
+	if len(ides) == 0 {
+		c.Printf("No IDEs auto detected or provided.\n")
+		prompt := promptui.Select{Label: "Select IDE", Items: allowedIDEs}
+		_, ideName, err = prompt.Run()
+		check(err)
+		if ideName == "" || !slices.Contains(allowedIDEs, ideName) {
+			out.Pfail("No valid ide selected. Exiting...")
+			os.Exit(1)
+		}
+		ides = []string{ideName}
+	}
+
+	cl := devplan.NewClient(devplan.Config{})
+	self, err := cl.GetSelf()
+	check(err)
+	companies := self.GetOwnInfo().GetCompanyDetails()
+	company, err := selector.Company(companies, selector.Props{}, companyID)
+	check(err)
+	project := selectProject(cl, company.GetId())
+	features := getFeatures(project)
+	feature, err := selector.Feature(features, selector.Props{}, featureID)
+	check(err)
+	featPrompt, err := getFeaturePrompt(feature.GetId(), project.GetDocs())
+	check(err)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	sumRespChan := make(chan *company2.GetRepoSummariesResponse, 1)
+	go func() {
+		sumResp, err := cl.GetRepoSummaries(company.GetId())
+		check(err)
+		sumRespChan <- sumResp
+		cancel()
+	}()
+	err = spinner.Run(ctx, "Loading repo summaries", "Repo summaries loaded")
+	check(err)
+	sumResp := <-sumRespChan
+	summary := getMatchingSummary(repo, sumResp.GetSummaries())
+
+	check(confirmRulesGeneration(ides, featPrompt, summary))
+	for _, name := range ides {
+		fmt.Println()
+		processIDE(name, featPrompt, summary)
+	}
+}
+
+func selectProject(cl *devplan.Client, companyID int32) *documents.ProjectWithDocs {
+	prResp, err := cl.GetCompanyProjects(companyID)
+	check(err)
+
+	if projectID != "" {
+		for _, p := range prResp.GetProjects() {
+			if p.GetProject().GetId() == projectID {
+				return getProjectWithDocs(projectID, prResp.GetProjects())
+			}
+		}
+		fmt.Printf(out.Failf("Project with id %v not found\n", projectID))
+		os.Exit(1)
+	}
+	grResp, err := cl.GetGroup(companyID, mainGroupID(companyID))
+	check(err)
+
+	var projects []*documents.ProjectEntity
+	for _, p := range prResp.GetProjects() {
+		if p.GetProject().GetDetails().GetStatus() != documents.ProjectStatus_DONE {
+			projects = append(projects, p.GetProject())
+		}
+	}
+	ordered := orderedProjects(grResp.GetGroup(), projects)
+	selectedPr, err := selector.Project(ordered, selector.Props{})
+	check(err)
+	return getProjectWithDocs(selectedPr.GetId(), prResp.GetProjects())
 }
 
 func processIDE(ideName string, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) {

@@ -5,7 +5,15 @@ import (
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/company"
 )
 
-func Company(companies []*company.CompanyDetails, props Props) (*company.CompanyDetails, error) {
+func Company(companies []*company.CompanyDetails, props Props, chosen int32) (*company.CompanyDetails, error) {
+	if chosen >= 0 {
+		for _, c := range companies {
+			if c.GetId() == chosen {
+				return c, nil
+			}
+		}
+		return nil, fmt.Errorf("company [%v] not found among user companies", chosen)
+	}
 	if len(companies) == 1 {
 		return companies[0], nil
 	}
