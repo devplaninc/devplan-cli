@@ -63,12 +63,9 @@ func (c *Client) getParsed(path string, msg proto.Message) error {
 }
 
 func (c *Client) get(path string) ([]byte, error) {
-	key, err := globals.GetAPIKey()
+	key, err := VerifyAuth()
 	if err != nil {
-		return nil, fmt.Errorf("failed to init get request, no API key: %w", err)
-	}
-	if key == "" {
-		return nil, fmt.Errorf("failed to init get request, no API key")
+		return nil, err
 	}
 	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
 	req, err := http.NewRequest("GET", url, nil)

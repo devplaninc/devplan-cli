@@ -112,6 +112,7 @@ func runFocus(c *cobra.Command, _ []string) {
 		fmt.Println()
 		processIDE(name, featPrompt, summary)
 	}
+	fmt.Println("\nNow you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
 }
 
 func selectProject(cl *devplan.Client, companyID int32) *documents.ProjectWithDocs {

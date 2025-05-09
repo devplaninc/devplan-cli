@@ -10,11 +10,6 @@ const (
 	LastProjectConfig = "lastProject"
 )
 
-// GetAPIKey gets the API key from the configuration
-func GetAPIKey() (string, error) {
-	return viper.GetString(APIkeyConfig), nil
-}
-
 func GetLastCompany() int32 {
 	return viper.GetInt32(LastCompanyConfig)
 }
