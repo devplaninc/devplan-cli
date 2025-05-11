@@ -10,6 +10,7 @@ var (
 	highlightStyle = lipgloss.NewStyle().Bold(true)
 	Check          = lipgloss.NewStyle().Bold(true).Render(promptui.IconGood)
 	Cross          = lipgloss.NewStyle().Bold(true).Render(promptui.IconBad)
+	WarnIcon       = lipgloss.NewStyle().Bold(true).Render(promptui.IconWarn)
 )
 
 const (
@@ -40,6 +41,10 @@ func Failf(format string, a ...any) string {
 
 func Pfailf(format string, a ...any) {
 	fmt.Print(Failf(format, a...))
+}
+
+func Warnf(format string, a ...interface{}) string {
+	return WarnIcon + " " + fmt.Sprintf(format, a...)
 }
 
 func Fail(s string) string {

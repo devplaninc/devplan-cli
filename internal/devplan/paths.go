@@ -17,6 +17,10 @@ func groupsPath(companyID int32) string {
 	return fmt.Sprintf("%v/groups", companyPath(companyID))
 }
 
+func integrationPath(companyID int32, provider string) string {
+	return fmt.Sprintf("%v/integration/%v", companyPath(companyID), provider)
+}
+
 func groupPath(companyID int32, groupID string) string {
 	return fmt.Sprintf("%v/%v", groupsPath(companyID), groupID)
 }

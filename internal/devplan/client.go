@@ -44,6 +44,11 @@ func (c *Client) GetSelf() (*user.GetSelfResponse, error) {
 	return result, c.getParsed(selfPath, result)
 }
 
+func (c *Client) GetIntegration(companyID int32, provider string) (*company.GetIntegrationPropertiesResponse, error) {
+	result := &company.GetIntegrationPropertiesResponse{}
+	return result, c.getParsed(integrationPath(companyID, provider), result)
+}
+
 func (c *Client) GetRepoSummaries(companyID int32) (*company.GetRepoSummariesResponse, error) {
 	result := &company.GetRepoSummariesResponse{}
 	return result, c.getParsed(repoSummariesPath(companyID), result)

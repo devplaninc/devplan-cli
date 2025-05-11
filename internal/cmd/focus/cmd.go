@@ -1,308 +1,49 @@
 package focus
 
 import (
-	"context"
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/components/selector"
-	"github.com/devplaninc/devplan-cli/internal/components/spinner"
-	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
-	company2 "github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/grouping"
-	"github.com/manifoldco/promptui"
+	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
+	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
 	"os"
-	"slices"
-	"strings"
-)
-
-const (
-	nowSection   = "now-projects"
-	nextSection  = "next-projects"
-	laterSection = "later-projects"
 )
 
 var (
 	Cmd = create()
-
-	allowedIDEs = []string{ide.Cursor, ide.Junie}
-	ideName     string
-	projectID   string
-	featureID   string
-	companyID   int32
 )
 
-func mainGroupID(companyID int32) string {
-	return fmt.Sprintf("%v-projects", companyID)
-}
-
 func create() *cobra.Command {
+	featPicker := &picker.FeatureCmd{}
 	cmd := &cobra.Command{
 		Use:     "focus",
 		Aliases: []string{"f"},
 		Short:   "Focus on a specific feature of a project",
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// Validate mode flag if provided
-			if ideName != "" && !slices.Contains(allowedIDEs, ideName) {
-				return fmt.Errorf("allowed values for IDE are %v, got: %s", allowedIDEs, ideName)
-			}
-			return nil
+		PreRunE: featPicker.PreRun,
+		Run: func(_ *cobra.Command, _ []string) {
+			runFocus(featPicker)
 		},
-		Run: runFocus,
 	}
-	cmd.Flags().StringVarP(
-		&ideName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(allowedIDEs, ", ")))
-	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Project id to focus on")
-	cmd.Flags().StringVarP(&featureID, "feature", "f", "", "Feature id to focus on")
-	cmd.Flags().Int32VarP(&companyID, "company", "c", -1, "Company id to focus on")
-
 	return cmd
 }
 
-func runFocus(c *cobra.Command, _ []string) {
+func runFocus(featPicker *picker.FeatureCmd) {
 	repo := git.EnsureInRepo()
 	out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
-	ides, err := getIDEsToProvision(ideName)
+	ides, err := picker.IDEs(featPicker.IDEName)
 	check(err)
-	if len(ides) == 0 {
-		c.Printf("No IDEs auto detected or provided.\n")
-		prompt := promptui.Select{Label: "Select IDE", Items: allowedIDEs}
-		_, ideName, err = prompt.Run()
-		check(err)
-		if ideName == "" || !slices.Contains(allowedIDEs, ideName) {
-			out.Pfail("No valid ide selected. Exiting...")
-			os.Exit(1)
-		}
-		ides = []string{ideName}
-	}
-
-	cl := devplan.NewClient(devplan.Config{})
-	self, err := cl.GetSelf()
+	feat, err := picker.Feature(featPicker)
 	check(err)
-	companies := self.GetOwnInfo().GetCompanyDetails()
-	company, err := selector.Company(companies, selector.Props{}, companyID)
+	feature := feat.Feature
+	project := feat.ProjectWithDocs
+	summary, err := loaders.RepoSummary(feature, repo)
 	check(err)
-	project := selectProject(cl, company.GetId())
-	features := getFeatures(project)
-	feature, err := selector.Feature(features, selector.Props{}, featureID)
+	featPrompt, err := picker.GetFeaturePrompt(feature.GetId(), project.GetDocs())
 	check(err)
-	featPrompt, err := getFeaturePrompt(feature.GetId(), project.GetDocs())
-	check(err)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	sumRespChan := make(chan *company2.GetRepoSummariesResponse, 1)
-	go func() {
-		sumResp, err := cl.GetRepoSummaries(company.GetId())
-		check(err)
-		sumRespChan <- sumResp
-		cancel()
-	}()
-	err = spinner.Run(ctx, "Loading repo summaries", "Repo summaries loaded")
-	check(err)
-	sumResp := <-sumRespChan
-	summary := getMatchingSummary(repo, sumResp.GetSummaries())
-
-	check(confirmRulesGeneration(ides, featPrompt, summary))
-	for _, name := range ides {
-		fmt.Println()
-		processIDE(name, featPrompt, summary)
-	}
+	check(ide.WriteMultiIDE(ides, featPrompt, summary, featPicker.Yes))
 	fmt.Println("\nNow you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
-}
-
-func selectProject(cl *devplan.Client, companyID int32) *documents.ProjectWithDocs {
-	prResp, err := cl.GetCompanyProjects(companyID)
-	check(err)
-
-	if projectID != "" {
-		for _, p := range prResp.GetProjects() {
-			if p.GetProject().GetId() == projectID {
-				return getProjectWithDocs(projectID, prResp.GetProjects())
-			}
-		}
-		fmt.Printf(out.Failf("Project with id %v not found\n", projectID))
-		os.Exit(1)
-	}
-	grResp, err := cl.GetGroup(companyID, mainGroupID(companyID))
-	check(err)
-
-	var projects []*documents.ProjectEntity
-	for _, p := range prResp.GetProjects() {
-		if p.GetProject().GetDetails().GetStatus() != documents.ProjectStatus_DONE {
-			projects = append(projects, p.GetProject())
-		}
-	}
-	ordered := orderedProjects(grResp.GetGroup(), projects)
-	selectedPr, err := selector.Project(ordered, selector.Props{})
-	check(err)
-	return getProjectWithDocs(selectedPr.GetId(), prResp.GetProjects())
-}
-
-func processIDE(ideName string, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) {
-	var err error
-	switch ideName {
-	case ide.Junie:
-		err = createJunieRules(featPrompt, summary)
-	case ide.Cursor:
-		err = createCursorRules(featPrompt, summary)
-	default:
-		err = fmt.Errorf("unknown ide: %v", ideName)
-	}
-	check(err)
-	check(git.UpdateIgnore())
-	fmt.Println(out.Successf("%s rules created successfully!", ideName))
-}
-
-func getIDEsToProvision(ideName string) ([]string, error) {
-	if ideName != "" {
-		return []string{ideName}, nil
-	}
-	return ide.Detect()
-}
-
-func confirmRulesGeneration(
-	ideNames []string,
-	featurePrompt *documents.DocumentEntity,
-	repoSummary *artifacts.ArtifactRepoSummary,
-) error {
-	if featurePrompt == nil && repoSummary == nil {
-		return fmt.Errorf("neither feature prompt nor repo summary found for the feature and repository")
-	}
-	root, err := git.GetRoot()
-	if err != nil {
-		return err
-	}
-	fmt.Printf(out.H(fmt.Sprintf(
-		"\nRules for %v will be generated for the selected feature in the current repository %v.\n\n",
-		strings.Join(ideNames, ", "), root)))
-	prompt := promptui.Prompt{
-		Label:     "Create rules",
-		IsConfirm: true,
-	}
-	result, err := prompt.Run()
-	if err != nil {
-		return err
-	}
-	if result != "y" {
-		return fmt.Errorf("aborted:" + result)
-	}
-	return nil
-}
-
-func getMatchingSummary(repo git.RepoInfo, summaries []*artifacts.ArtifactRepoSummary) *artifacts.ArtifactRepoSummary {
-	for _, s := range summaries {
-		if repo.MatchesName(s.GetRepoName()) {
-			return s
-		}
-	}
-	return nil
-}
-
-func getFeaturePrompt(featureID string, docs []*documents.DocumentEntity) (*documents.DocumentEntity, error) {
-	codeAssist := getCodingAssistant(docs)
-	if codeAssist == nil {
-		return nil, nil
-	}
-	for _, d := range docs {
-		if d.GetParentId() != codeAssist.GetId() {
-			continue
-		}
-		details := &documents.CustomDocumentDetails{}
-		err := protojson.Unmarshal([]byte(d.GetDetails()), details)
-		if err != nil {
-			return nil, err
-		}
-		if details.GetExtraPromptParams()["feature_id"] == featureID {
-			return d, nil
-		}
-	}
-	return nil, nil
-}
-
-func getCodingAssistant(docs []*documents.DocumentEntity) *documents.DocumentEntity {
-	for _, d := range docs {
-		if d.GetType() == documents.DocumentType_CODING_ASSISTANT {
-			return d
-		}
-	}
-	return nil
-}
-
-func getProjectWithDocs(projectID string, projects []*documents.ProjectWithDocs) *documents.ProjectWithDocs {
-	for _, p := range projects {
-		if p.GetProject().GetId() == projectID {
-			return p
-		}
-	}
-	return nil
-}
-
-func getFeatures(project *documents.ProjectWithDocs) []*documents.DocumentEntity {
-	var docs []*documents.DocumentEntity
-	for _, d := range project.GetDocs() {
-		if d.GetType() == documents.DocumentType_FEATURE {
-			docs = append(docs, d)
-		}
-	}
-	return docs
-}
-
-func orderedProjects(group *grouping.Group, projects []*documents.ProjectEntity) []*documents.ProjectEntity {
-	result := getProjectsFromSections(projects, group)
-	known := make(map[string]bool)
-	for _, p := range result {
-		known[p.GetId()] = true
-	}
-	for _, p := range projects {
-		if !known[p.GetId()] {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
-func getProjectsFromSections(projects []*documents.ProjectEntity, group *grouping.Group) []*documents.ProjectEntity {
-	var result []*documents.ProjectEntity
-	for _, k := range []string{nowSection, nextSection, laterSection} {
-		section := getSection(group, k)
-		pr := getSectionProjects(projects, section)
-		result = append(result, pr...)
-	}
-	return result
-}
-
-func getSectionProjects(projects []*documents.ProjectEntity, section *grouping.GroupItem) []*documents.ProjectEntity {
-	if section == nil {
-		return nil
-	}
-	byID := make(map[string]*documents.ProjectEntity)
-	for _, p := range projects {
-		byID[p.GetId()] = p
-	}
-	var result []*documents.ProjectEntity
-	for _, itemID := range section.GetChildItems() {
-		if p, ok := byID[itemID]; ok {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
-func getSection(group *grouping.Group, key string) *grouping.GroupItem {
-	for _, item := range group.GetItems() {
-		if item.GetKey() == key {
-			if item.GetSection() != nil {
-				return item
-			}
-			break
-		}
-	}
-	return nil
 }
 
 func check(err error) {

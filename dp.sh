@@ -4,4 +4,4 @@ set -e
 # set -x
 set -o pipefail
 
-go run internal/cmd/main/main.go --domain=local "$@"
+go run internal/cmd/main/main.go --domain=beta "$@"

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	"github.com/devplaninc/devplan-cli/internal/utils/globals"
 	"log/slog"
@@ -37,6 +38,7 @@ func init() {
 		os.Exit(1)
 	}
 	rootCmd.AddCommand(focus.Cmd)
+	rootCmd.AddCommand(clone.Cmd)
 }
 
 func initConfig() {

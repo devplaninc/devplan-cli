@@ -1,4 +1,4 @@
-package focus
+package ide
 
 import _ "embed"
 

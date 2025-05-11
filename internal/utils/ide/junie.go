@@ -1,8 +1,7 @@
-package focus
+package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"path/filepath"
@@ -36,16 +35,16 @@ func juniePathsReplace(str string) string {
 }
 
 func createJunieRules(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
-	rules := []ide.Rule{
+	rules := []Rule{
 		{NoPrefix: true, Name: "guidelines", Content: juniePathsReplace(devFlowRule), Footer: junieAllOtherRules()},
 		{Name: "rules", Content: rulesRule},
 		{Name: "insights", Content: insightsRule},
 	}
 	if featurePrompt != nil {
-		rules = append(rules, ide.Rule{Name: "current_feature", Content: featurePrompt.GetContent()})
+		rules = append(rules, Rule{Name: "current_feature", Content: featurePrompt.GetContent()})
 	}
 	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
-		rules = append(rules, ide.Rule{Name: "repo_overview", Content: summary})
+		rules = append(rules, Rule{Name: "repo_overview", Content: summary})
 	}
-	return ide.WriteRules(rules, filepath.Join(".junie"), "md")
+	return WriteRules(rules, filepath.Join(".junie"), "md")
 }

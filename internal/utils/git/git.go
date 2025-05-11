@@ -6,7 +6,9 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"io"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -28,8 +30,8 @@ func IsNotInRepoErr(err error) bool {
 	return errors.Is(err, git.ErrRepositoryNotExists)
 }
 
-func EnsureInRepo() RepoInfo {
-	repo, err := CurrentRepo()
+func EnsureRepoPath(path string) RepoInfo {
+	repo, err := RepoAtPath(path)
 	if err == nil {
 		return repo
 	}
@@ -43,8 +45,16 @@ func EnsureInRepo() RepoInfo {
 	return RepoInfo{}
 }
 
+func EnsureInRepo() RepoInfo {
+	return EnsureRepoPath(".")
+}
+
 func CurrentRepo() (RepoInfo, error) {
-	urls, err := getRepoURLs()
+	return RepoAtPath(".")
+}
+
+func RepoAtPath(path string) (RepoInfo, error) {
+	urls, err := getRepoURLs(path)
 	if err != nil {
 		return RepoInfo{}, err
 	}
@@ -79,6 +89,13 @@ func GetFullName(url string) (string, error) {
 	return name, nil
 }
 
+func Clone(repoURL string, targetPath string, outWriter io.Writer) error {
+	cmd := exec.Command("git", "clone", repoURL, targetPath)
+	cmd.Stdout = outWriter
+	cmd.Stderr = outWriter
+	return cmd.Run()
+}
+
 func GetRoot() (string, error) {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
@@ -91,8 +108,8 @@ func GetRoot() (string, error) {
 	return wt.Filesystem.Root(), nil
 }
 
-func getRepoURLs() ([]string, error) {
-	repo, err := git.PlainOpen(".")
+func getRepoURLs(path string) ([]string, error) {
+	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return nil, err
 	}
