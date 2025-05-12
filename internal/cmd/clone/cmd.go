@@ -27,7 +27,7 @@ var (
 	Cmd = create()
 )
 
-var defaultWorkspace = path.Join(".devplan", "workspace")
+var defaultWorkspace = path.Join("devplan", "workspace")
 
 const (
 	workspaceConfigKey = "workspace_dir"
@@ -44,7 +44,7 @@ This command streamlines the workflow of cloning a repository and focusing on a 
 It will clone the repository into the configured workplace directory and set up the necessary rules.`,
 		PreRunE: featPicker.PreRun,
 		Run: func(_ *cobra.Command, _ []string) {
-			runDo(featPicker, repoName)
+			runClone(featPicker, repoName)
 		},
 	}
 	featPicker.Prepare(cmd)
@@ -53,7 +53,7 @@ It will clone the repository into the configured workplace directory and set up 
 	return cmd
 }
 
-func runDo(featPicker *picker.FeatureCmd, repoName string) {
+func runClone(featPicker *picker.FeatureCmd, repoName string) {
 	ides, err := picker.IDEs(featPicker.IDEName)
 	check(err)
 	feat, err := picker.Feature(featPicker)

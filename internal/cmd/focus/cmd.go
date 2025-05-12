@@ -26,6 +26,7 @@ func create() *cobra.Command {
 			runFocus(featPicker)
 		},
 	}
+	featPicker.Prepare(cmd)
 	return cmd
 }
 
