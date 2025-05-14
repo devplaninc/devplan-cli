@@ -123,16 +123,19 @@ func WriteRules(rules []Rule, path string, extension string) error {
 		filePath := filepath.Join(rulesDir, fileName)
 
 		// Write the rule content to the file
-		content := rule.Content
+		content := ""
 		if h := rule.Header; h != "" {
 			content = fmt.Sprintf("%v\n\n%v", h, content)
 		}
-		if f := rule.Footer; f != "" {
-			content = fmt.Sprintf("%v\n\n%v", content, f)
-		}
 
 		if featID := rule.FeatureID; featID != "" {
-			content = fmt.Sprintf("\n<!-- feature_id: %s -->\n\n%v", featID, content)
+			content = fmt.Sprintf("%v<!-- feature_id: %v -->\n\n", content, featID)
+		}
+
+		content = fmt.Sprintf("%v%v", content, rule.Content)
+
+		if f := rule.Footer; f != "" {
+			content = fmt.Sprintf("%v\n%v", content, f)
 		}
 
 		err := os.WriteFile(filePath, []byte(content), 0644)
