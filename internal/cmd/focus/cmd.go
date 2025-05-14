@@ -33,7 +33,7 @@ func create() *cobra.Command {
 func runFocus(featPicker *picker.FeatureCmd) {
 	repo := git.EnsureInRepo()
 	out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
-	ides, err := picker.IDEs(featPicker.IDEName)
+	ides, err := picker.AssistantForIDE(featPicker.IDEName)
 	check(err)
 	feat, err := picker.Feature(featPicker)
 	check(err)

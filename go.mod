@@ -10,9 +10,11 @@ require (
 	github.com/devplaninc/webapp v0.2.0
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/manifoldco/promptui v0.9.0
+	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -64,7 +66,6 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect

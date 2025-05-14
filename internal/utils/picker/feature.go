@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/components/selector"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
+	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/grouping"
 	"github.com/spf13/cobra"
@@ -25,19 +26,23 @@ type FeatureCmd struct {
 	Yes       bool
 }
 
-func (c *FeatureCmd) PreRun(cmd *cobra.Command, args []string) error {
-	allowedIDEs := GetAllowedIDEs()
+func (c *FeatureCmd) PreRun(_ *cobra.Command, _ []string) error {
+	allowedIDEs := ide.GetKnown()
 	// Validate mode flag if provided
-	if c.IDEName != "" && !slices.Contains(allowedIDEs, c.IDEName) {
+	if c.IDEName != "" && !slices.Contains(allowedIDEs, ide.IDE(c.IDEName)) {
 		return fmt.Errorf("allowed values for IDE are %v, got: %s", allowedIDEs, c.IDEName)
 	}
 	return nil
 }
 
 func (c *FeatureCmd) Prepare(cmd *cobra.Command) {
-	allowedIDEs := GetAllowedIDEs()
+	knownIDEs := ide.GetKnown()
+	var ideStr []string
+	for _, i := range knownIDEs {
+		ideStr = append(ideStr, string(i))
+	}
 	cmd.Flags().StringVarP(
-		&c.IDEName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(allowedIDEs, ", ")))
+		&c.IDEName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(ideStr, ", ")))
 	cmd.Flags().StringVarP(&c.ProjectID, "project", "p", "", "Project id to focus on")
 	cmd.Flags().StringVarP(&c.FeatureID, "feature", "f", "", "Feature id to focus on")
 	cmd.Flags().Int32VarP(&c.CompanyID, "company", "c", -1, "Company id to focus on")

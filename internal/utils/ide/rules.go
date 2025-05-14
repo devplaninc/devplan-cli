@@ -7,47 +7,51 @@ import (
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/manifoldco/promptui"
+	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 type Rule struct {
-	NoPrefix bool
-	Name     string
-	Content  string
-	Header   string
-	Footer   string
+	NoPrefix  bool
+	Name      string
+	Content   string
+	Header    string
+	Footer    string
+	FeatureID string
 }
 
 func WriteMultiIDE(
-	ides []string,
+	assistants []Assistant,
 	featPrompt *documents.DocumentEntity,
 	summary *artifacts.ArtifactRepoSummary,
 	yes bool,
 ) error {
-	err := confirmRulesGeneration(ides, featPrompt, summary, yes)
+	err := confirmRulesGeneration(assistants, featPrompt, summary, yes)
 	if err != nil {
 		return err
 	}
-	for _, name := range ides {
+	for _, name := range assistants {
 		fmt.Println()
-		if err := processIDE(name, featPrompt, summary); err != nil {
+		if err := processAssistant(name, featPrompt, summary); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func processIDE(ideName string, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) error {
+func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) error {
 	var err error
-	switch ideName {
-	case Junie:
+	switch asst {
+	case JunieAI:
 		err = createJunieRules(featPrompt, summary)
-	case Cursor:
+	case CursorAI:
 		err = createCursorRulesFromPrompt(featPrompt, summary)
+	case WindsurfAI:
+		err = createWindsurfRulesFromPrompt(featPrompt, summary)
 	default:
-		err = fmt.Errorf("unknown ide: %v", ideName)
+		err = fmt.Errorf("unknown assistant: %v", asst)
 	}
 	if err != nil {
 		return err
@@ -56,12 +60,12 @@ func processIDE(ideName string, featPrompt *documents.DocumentEntity, summary *a
 	if err != nil {
 		return fmt.Errorf("failed to update .gitignore: %w", err)
 	}
-	fmt.Println(out.Successf("%s rules created successfully!", ideName))
+	fmt.Println(out.Successf("%s rules created successfully!", asst))
 	return nil
 }
 
 func confirmRulesGeneration(
-	ideNames []string,
+	assistants []Assistant,
 	featurePrompt *documents.DocumentEntity,
 	repoSummary *artifacts.ArtifactRepoSummary,
 	yes bool,
@@ -76,9 +80,13 @@ func confirmRulesGeneration(
 	if err != nil {
 		return err
 	}
-	fmt.Printf(out.H(fmt.Sprintf(
+	var assistantsStr []string
+	for _, assistant := range assistants {
+		assistantsStr = append(assistantsStr, string(assistant))
+	}
+	fmt.Print(out.H(fmt.Sprintf(
 		"\nRules for %v will be generated for the selected feature in the current repository %v.\n\n",
-		strings.Join(ideNames, ", "), root)))
+		strings.Join(assistantsStr, ", "), root)))
 	prompt := promptui.Prompt{
 		Label:     "Create rules",
 		IsConfirm: true,
@@ -88,7 +96,7 @@ func confirmRulesGeneration(
 		return err
 	}
 	if result != "y" {
-		return fmt.Errorf("aborted:" + result)
+		return errors.New("aborted:" + result)
 	}
 	return nil
 }
@@ -122,6 +130,11 @@ func WriteRules(rules []Rule, path string, extension string) error {
 		if f := rule.Footer; f != "" {
 			content = fmt.Sprintf("%v\n\n%v", content, f)
 		}
+
+		if featID := rule.FeatureID; featID != "" {
+			content = fmt.Sprintf("\n<!-- feature_id: %s -->\n\n%v", featID, content)
+		}
+
 		err := os.WriteFile(filePath, []byte(content), 0644)
 		if err != nil {
 			return fmt.Errorf("failed to write rule file %s: %w", rule.Name, err)

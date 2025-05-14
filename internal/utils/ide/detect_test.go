@@ -13,11 +13,12 @@ func TestDetectIDEDirectories(t *testing.T) {
 	// Test cases for different IDE directories
 	testCases := []struct {
 		dirs []string
-		ides []string
+		ides []Assistant
 	}{
-		{[]string{".cursor"}, []string{Cursor}},
-		{[]string{".junie"}, []string{Junie}},
-		{[]string{".cursor", ".junie"}, []string{Cursor, Junie}},
+		{[]string{".cursor"}, []Assistant{CursorAI}},
+		{[]string{".junie"}, []Assistant{JunieAI}},
+		{[]string{".windsurf"}, []Assistant{WindsurfAI}},
+		{[]string{".cursor", ".junie"}, []Assistant{CursorAI, JunieAI}},
 		{nil, nil},
 	}
 
@@ -35,7 +36,7 @@ func TestDetectIDEDirectories(t *testing.T) {
 				_, err := os.Stat(idePath)
 				require.NoError(t, err)
 			}
-			ides, err := DetectOnPath(tempDir)
+			ides, err := DetectAssistantOnPath(tempDir)
 			require.NoError(t, err)
 			assert.Equal(t, tc.ides, ides)
 		})

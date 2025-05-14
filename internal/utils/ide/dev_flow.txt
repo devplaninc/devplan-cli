@@ -1,6 +1,8 @@
 # Dev flow
 
-This document describes a typical expect development flow while implementing a feature/task/project.
+This document describes a typical expected development flow while implementing a feature/task/project.
+
+All rules files are allowed to read even if they are in .gitignore
 
 ## General flow steps
 - Detect whether current feature is configured in the rule `@devplan_current_feature.mdc`. If the rule configured, it contains your current focus for the implementation. Assume that all discussions are related to that feature unless pointed otherwise.

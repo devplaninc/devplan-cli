@@ -1,8 +1,8 @@
 package picker
 
 import (
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func GetFeaturePrompt(featureID string, docs []*documents.DocumentEntity) (*documents.DocumentEntity, error) {
@@ -14,12 +14,11 @@ func GetFeaturePrompt(featureID string, docs []*documents.DocumentEntity) (*docu
 		if d.GetParentId() != codeAssist.GetId() {
 			continue
 		}
-		details := &documents.CustomDocumentDetails{}
-		err := protojson.Unmarshal([]byte(d.GetDetails()), details)
+		featID, err := prompts.GetPromptFeatureID(d)
 		if err != nil {
 			return nil, err
 		}
-		if details.GetExtraPromptParams()["feature_id"] == featureID {
+		if featID == featureID {
 			return d, nil
 		}
 	}

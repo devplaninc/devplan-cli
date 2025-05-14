@@ -18,8 +18,8 @@ const (
 )
 
 // H stands for highlight
-func H(s string) string {
-	return highlightStyle.Render(s)
+func H(v any) string {
+	return Hf("%v", v)
 }
 
 // Hf highlights with formatting
@@ -47,8 +47,8 @@ func Warnf(format string, a ...interface{}) string {
 	return WarnIcon + " " + fmt.Sprintf(format, a...)
 }
 
-func Fail(s string) string {
-	return Cross + " " + lipgloss.NewStyle().Render(s)
+func Fail(v any) string {
+	return Failf("%v", v)
 }
 
 func Pfail(s string) {

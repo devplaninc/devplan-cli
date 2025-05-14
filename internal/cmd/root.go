@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/devplaninc/devplan-cli/internal/cmd/auth"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
+	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
+	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/globals"
-	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -37,8 +39,10 @@ func init() {
 		fmt.Printf("Failed to initialize CLI (domain flag): %v\n)", err)
 		os.Exit(1)
 	}
+	rootCmd.AddCommand(auth.Cmd)
 	rootCmd.AddCommand(focus.Cmd)
 	rootCmd.AddCommand(clone.Cmd)
+	rootCmd.AddCommand(switch_cmd.Cmd)
 }
 
 func initConfig() {
@@ -61,7 +65,7 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		slog.Debug("Using config file: %s", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err != nil {
+		out.Pfailf("Failed to read config file: %v\n", err)
 	}
 }

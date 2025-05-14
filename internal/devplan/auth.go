@@ -25,6 +25,10 @@ func VerifyAuth() (string, error) {
 	if key != "" {
 		return key, nil
 	}
+	return RequestAuth()
+}
+
+func RequestAuth() (string, error) {
 	fmt.Println("Starting authentication with Devplan service...")
 
 	// Request a login link
@@ -61,12 +65,12 @@ func VerifyAuth() (string, error) {
 
 	err = spinner.Run(ctx, "Waiting for authentication to complete", "Authenticated")
 	if err != nil {
-		fmt.Println(out.Failf(err.Error()))
+		fmt.Println(out.Fail(err))
 		return "", err
 	}
 	res := <-resChan
 	if err := res.err; err != nil {
-		fmt.Println(out.Failf(err.Error()))
+		fmt.Println(out.Fail(err))
 		return "", err
 	}
 

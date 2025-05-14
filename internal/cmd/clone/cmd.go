@@ -54,7 +54,7 @@ It will clone the repository into the configured workplace directory and set up 
 }
 
 func runClone(featPicker *picker.FeatureCmd, repoName string) {
-	ides, err := picker.IDEs(featPicker.IDEName)
+	assistants, err := picker.AssistantForIDE(featPicker.IDEName)
 	check(err)
 	feat, err := picker.Feature(featPicker)
 	check(err)
@@ -65,24 +65,61 @@ func runClone(featPicker *picker.FeatureCmd, repoName string) {
 	check(err)
 	repoURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
 
-	dest, err := getFeatureCloneDest(feature)
+	repoPath, gitRepo, err := prepareRepository(featPicker, repoURL, feature)
 	check(err)
-
-	// 5. Clone repository or use existing clone
-	repoPath, err := cloneRepository(repoURL, dest)
-	check(err)
-	gitRepo := git.EnsureRepoPath(repoPath)
 	summary, err := loaders.RepoSummary(feature, gitRepo)
 	check(err)
 	featPrompt, err := picker.GetFeaturePrompt(feature.GetId(), project.GetDocs())
 	check(err)
+
 	err = os.Chdir(repoPath)
 	check(err)
-	check(ide.WriteMultiIDE(ides, featPrompt, summary, featPicker.Yes))
+	check(ide.WriteMultiIDE(assistants, featPrompt, summary, featPicker.Yes))
 
+	if featPicker.IDEName != "" {
+		launch(ide.IDE(featPicker.IDEName), repoPath)
+		return
+	}
 	displayPath := pathWithTilde(repoPath)
+
 	fmt.Printf("\nRepository cloned to %s\n", out.H(displayPath))
 	fmt.Println("Now you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
+}
+
+func prepareRepository(featPicker *picker.FeatureCmd, repoURL string, feature *documents.DocumentEntity) (string, git.RepoInfo, error) {
+	repoPath, exists, err := getRepoPath(repoURL, feature)
+	check(err)
+	displayPath := pathWithTilde(repoPath)
+	if !exists {
+		check(cloneRepository(repoURL, repoPath))
+		return repoPath, git.EnsureRepoPath(repoPath), nil
+	}
+	if len(featPicker.IDEName) == 0 {
+		return "", git.RepoInfo{}, fmt.Errorf("repository already exists and no IDE to launch selected")
+	}
+	ideName := ide.IDE(featPicker.IDEName)
+	if featPicker.Yes {
+		out.Psuccessf("Repository %s already exists. Opening it in %v.\n", out.H(displayPath), out.H(ideName))
+		return repoPath, git.EnsureRepoPath(repoPath), nil
+	}
+	p := promptui.Prompt{
+		Label: fmt.Sprintf("Repository %s already exists. Do you want to open it in %v",
+			displayPath, ideName),
+		IsConfirm: true,
+	}
+	resp, err := p.Run()
+	check(err)
+	if resp != "y" {
+		return "", git.RepoInfo{}, fmt.Errorf("repository already exists, selected not to open it")
+	}
+	return repoPath, git.EnsureRepoPath(repoPath), nil
+}
+
+func launch(ideName ide.IDE, repoPath string) {
+	check(ide.LaunchIDE(ideName, repoPath))
+	out.Successf(
+		"%v launched at the repository. You can ask AI assitant there to execute current feature. Happy coding!",
+		ideName)
 }
 
 func confirmRepository(repoName string, companyID int32) (*integrations.GitHubRepository, error) {
@@ -156,50 +193,49 @@ func sanitizeDirName(name string) string {
 	return reg.ReplaceAllString(name, "")
 }
 
-func getFeatureCloneDest(feature *documents.DocumentEntity) (string, error) {
+func getRepoPath(url string, feature *documents.DocumentEntity) (string, bool, error) {
 	workspaceDir := getWorkspaceDir()
 	dirName := sanitizeDirName(feature.GetTitle())
-	repoPath := filepath.Join(workspaceDir, "features", fmt.Sprintf("%s", dirName))
-	if _, err := os.Stat(repoPath); err == nil {
-		return "", fmt.Errorf("repository already exists at %s", repoPath)
-	}
-	return repoPath, nil
-}
-
-func cloneRepository(url string, destination string) (string, error) {
+	repoParent := filepath.Join(workspaceDir, "features", fmt.Sprintf("%s", dirName))
 	repoFullName, err := git.GetFullName(url)
 	parts := strings.Split(repoFullName, "/")
 	repoName := parts[len(parts)-1]
 	if err != nil {
-		return "", fmt.Errorf("failed to get repository name from URL: %v", err)
+		return "", false, fmt.Errorf("failed to get repository name from URL: %v", err)
 	}
-	repoPath := filepath.Join(destination, repoName)
+	repoPath := filepath.Join(repoParent, repoName)
+	if _, err := os.Stat(repoPath); err == nil {
+		return repoPath, true, nil
+	}
+	return repoPath, false, nil
+}
 
+func cloneRepository(url string, path string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sp := spinner.New(
-		fmt.Sprintf("Cloning repository %s into %s", out.H(url), out.H(repoPath)),
-		fmt.Sprintf("Repository cloned successfully to %v", out.H(repoPath)),
+		fmt.Sprintf("Cloning repository %s into %s", out.H(url), out.H(path)),
+		fmt.Sprintf("Repository cloned successfully to %v", out.H(path)),
 	)
 
 	// Clone in a goroutine so we can show a spinner
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- git.Clone(url, repoPath, sp.GetProgressWriter())
+		errChan <- git.Clone(url, path, sp.GetProgressWriter())
 		cancel()
 	}()
 
-	err = sp.Run(ctx)
+	err := sp.Run(ctx)
 	if err != nil {
-		return "", fmt.Errorf("clone failed: %w", err)
+		return fmt.Errorf("clone failed: %w", err)
 	}
 
 	err = <-errChan
 	if err != nil {
-		_ = os.RemoveAll(repoPath)
-		return "", fmt.Errorf("failed to clone repository: %w", err)
+		_ = os.RemoveAll(path)
+		return fmt.Errorf("failed to clone repository: %w", err)
 	}
-	return repoPath, nil
+	return nil
 }
 
 func pathWithTilde(path string) string {
