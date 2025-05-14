@@ -1,4 +1,5 @@
-## When to Enhance Rules
+Make sure to capture important insights while working with the user and writing the code. Those insights should be
+captured as new rules and persisted for future use.
 
 Consider updating rules when you observe:
 - Code structures not addressed by current rules
@@ -6,25 +7,6 @@ Consider updating rules when you observe:
 - Recurring error patterns that could be prevented proactively
 - Consistent adoption of new development tools or libraries
 - Evolving best practices within the project codebase
-
-## Insight Collection Framework
-
-When evaluating code:
-- Assess alignment between new implementations and existing rules
-- Identify recurring patterns worthy of standardization
-- Scan for references to external documentation materials
-- Examine consistency in exception handling approaches
-- Evaluate testing methodologies and coverage metrics
-
-## Rule Development Strategy
-
-### Creating New Rules
-
-Introduce additional rules when:
-- A specific technology or pattern appears in a few distinct files
-- You identify potential bugs that preventative rules could address
-- Code review feedback consistently highlights the same issues
-- New security considerations or performance optimizations emerge
 
 ### Refining Existing Rules
 
@@ -34,37 +16,16 @@ Update current rules when:
 - Changes have been made to interconnected rules
 - Technical implementation details have evolved
 
-## Quality Assurance Criteria
-
 Effective rules should:
 - Provide specific, actionable guidance
 - Include real-world examples from the codebase
 - Maintain current and accurate references
 - Support consistent pattern enforcement
 
-## Long-term Maintenance
-
-For sustained rule relevance:
-- Review code feedback patterns
-- Capture frequently asked development questions
-- Revisit rules following major code restructuring
-- Integrate links to relevant technical documentation
-- Establish connections between related rules
-
-## Deleting Rules
-
-When phasing out rules:
+Consider deleting existing rules when:
 - Clearly identify deprecated patterns
 - Eliminate rules that no longer apply
 - Update cross-references to retired rules
 - Document migration strategies for legacy approaches
-
-## Documentation Maintenance
-
-To maintain documentation integrity:
-- Ensure examples reflect current code practices
-- Refresh links to external resources
-- Maintain navigation between related rules
-- Document significant changes that impact existing code
 
 Reference @devplan_rules for standardized rule formatting and organization.
