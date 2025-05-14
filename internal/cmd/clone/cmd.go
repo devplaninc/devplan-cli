@@ -91,7 +91,8 @@ func prepareRepository(featPicker *picker.FeatureCmd, repoURL string, feature *d
 	check(err)
 	displayPath := pathWithTilde(repoPath)
 	if !exists {
-		check(cloneRepository(repoURL, repoPath))
+		branchName := sanitizeName(feature.GetTitle(), 30)
+		check(cloneRepository(repoURL, repoPath, branchName))
 		return repoPath, git.EnsureRepoPath(repoPath), nil
 	}
 	if len(featPicker.IDEName) == 0 {
@@ -183,9 +184,9 @@ func getWorkspaceDir() string {
 	return workspaceDir
 }
 
-func sanitizeDirName(name string) string {
-	if len(name) > 30 {
-		name = name[:30]
+func sanitizeName(name string, maxLen int) string {
+	if len(name) > maxLen {
+		name = name[:maxLen]
 	}
 	name = strings.ToLower(name)
 	name = strings.ReplaceAll(name, " ", "_")
@@ -195,7 +196,7 @@ func sanitizeDirName(name string) string {
 
 func getRepoPath(url string, feature *documents.DocumentEntity) (string, bool, error) {
 	workspaceDir := getWorkspaceDir()
-	dirName := sanitizeDirName(feature.GetTitle())
+	dirName := sanitizeName(feature.GetTitle(), 30)
 	repoParent := filepath.Join(workspaceDir, "features", fmt.Sprintf("%s", dirName))
 	repoFullName, err := git.GetFullName(url)
 	parts := strings.Split(repoFullName, "/")
@@ -210,7 +211,7 @@ func getRepoPath(url string, feature *documents.DocumentEntity) (string, bool, e
 	return repoPath, false, nil
 }
 
-func cloneRepository(url string, path string) error {
+func cloneRepository(url string, path string, branchToCreate string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sp := spinner.New(
@@ -221,7 +222,12 @@ func cloneRepository(url string, path string) error {
 	// Clone in a goroutine so we can show a spinner
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- git.Clone(url, path, sp.GetProgressWriter())
+		errChan <- git.Clone(git.CloneOptions{
+			RepoURL:          url,
+			TargetPath:       path,
+			OutWriter:        sp.GetProgressWriter(),
+			CreateBranchName: branchToCreate,
+		})
 		cancel()
 	}()
 

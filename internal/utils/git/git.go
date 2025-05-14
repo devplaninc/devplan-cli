@@ -89,11 +89,37 @@ func GetFullName(url string) (string, error) {
 	return name, nil
 }
 
-func Clone(repoURL string, targetPath string, outWriter io.Writer) error {
-	cmd := exec.Command("git", "clone", repoURL, targetPath)
-	cmd.Stdout = outWriter
-	cmd.Stderr = outWriter
-	return cmd.Run()
+type CloneOptions struct {
+	RepoURL          string
+	TargetPath       string
+	CreateBranchName string
+	OutWriter        io.Writer
+}
+
+func Clone(opt CloneOptions) error {
+	cmd := exec.Command("git", "clone", opt.RepoURL, opt.TargetPath)
+	if o := opt.OutWriter; o != nil {
+		cmd.Stdout = o
+		cmd.Stderr = o
+	}
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	if opt.CreateBranchName != "" {
+		// Create and checkout new branch
+		cmd = exec.Command("git", "-C", opt.TargetPath, "checkout", "-b", opt.CreateBranchName)
+		if o := opt.OutWriter; o != nil {
+			cmd.Stdout = o
+			cmd.Stderr = o
+		}
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func GetRoot() (string, error) {
