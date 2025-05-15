@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/cmd/auth"
+	"github.com/devplaninc/devplan-cli/internal/cmd/clean"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
@@ -43,6 +44,7 @@ func init() {
 	rootCmd.AddCommand(focus.Cmd)
 	rootCmd.AddCommand(clone.Cmd)
 	rootCmd.AddCommand(switch_cmd.Cmd)
+	rootCmd.AddCommand(clean.Cmd)
 }
 
 func initConfig() {

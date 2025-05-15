@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
+	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -19,17 +19,10 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
 	Cmd = create()
-)
-
-var defaultWorkspace = path.Join("devplan", "workspace")
-
-const (
-	workspaceConfigKey = "workspace_dir"
 )
 
 func create() *cobra.Command {
@@ -153,38 +146,6 @@ func confirmRepository(repoName string, companyID int32) (*integrations.GitHubRe
 	return byName[selectedRepoName], nil
 }
 
-func getWorkspaceDir() string {
-	workspaceDir := viper.GetString(workspaceConfigKey)
-	if workspaceDir == "" {
-		// Use default directory in user's home
-		home, err := os.UserHomeDir()
-		if err != nil {
-			out.Pfailf("Failed to get user home directory: %v\n", err)
-			os.Exit(1)
-		}
-		workspaceDir = filepath.Join(home, defaultWorkspace)
-
-		// Save to config for future use
-		viper.Set(workspaceConfigKey, workspaceDir)
-		err = viper.WriteConfig()
-		if err != nil {
-			out.Pfailf("Failed to write config: %v\n", err)
-			// Continue anyway, just log the error
-		}
-	}
-
-	// Ensure directory exists
-	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
-		err = os.MkdirAll(workspaceDir, 0755)
-		if err != nil {
-			out.Pfailf("Failed to create workplace directory: %v\n", err)
-			os.Exit(1)
-		}
-	}
-
-	return workspaceDir
-}
-
 func sanitizeName(name string, maxLen int) string {
 	if len(name) > maxLen {
 		name = name[:maxLen]
@@ -196,9 +157,8 @@ func sanitizeName(name string, maxLen int) string {
 }
 
 func getRepoPath(url string, target picker.DevTarget) (string, bool, error) {
-	workspaceDir := getWorkspaceDir()
 	dirName := sanitizeName(target.GetName(), 30)
-	repoParent := filepath.Join(workspaceDir, "features", fmt.Sprintf("%s", dirName))
+	repoParent := filepath.Join(workspace.GetFeaturesPath(), fmt.Sprintf("%s", dirName))
 	repoFullName, err := git.GetFullName(url)
 	parts := strings.Split(repoFullName, "/")
 	repoName := parts[len(parts)-1]

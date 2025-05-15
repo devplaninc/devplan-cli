@@ -2,15 +2,14 @@ package switch_cmd
 
 import (
 	"fmt"
+	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -34,23 +33,8 @@ func create() *cobra.Command {
 }
 
 func runSwitch(ideName string) {
-	// Get workspace directory
-	workspaceDir := getWorkspaceDir()
-	featuresDir := filepath.Join(workspaceDir, "features")
-
-	// Check if features directory exists
-	if _, err := os.Stat(featuresDir); os.IsNotExist(err) {
-		fmt.Println(out.Failf("No cloned features found. Use 'devplan clone' to clone a feature first."))
-		os.Exit(1)
-	}
-
-	// Get list of cloned features
-	features, err := listClonedFeatures(featuresDir)
-	if err != nil {
-		fmt.Println(out.Failf("Failed to list cloned features: %v", err))
-		os.Exit(1)
-	}
-
+	features, err := workspace.ListClonedFeatures()
+	check(err)
 	if len(features) == 0 {
 		fmt.Println(out.Failf("No cloned features found. Use 'devplan clone' to clone a feature first."))
 		os.Exit(1)
@@ -68,8 +52,7 @@ func runSwitch(ideName string) {
 	}
 	selectedFeature := features[idx]
 
-	// Get the repository path
-	repoPath := filepath.Join(featuresDir, selectedFeature)
+	repoPath := workspace.GetFeaturePath(selectedFeature)
 
 	// If IDE name is provided, use it
 	if ideName != "" {
@@ -138,25 +121,9 @@ func listClonedFeatures(featuresDir string) ([]string, error) {
 	return features, nil
 }
 
-func getWorkspaceDir() string {
-	workspaceDir := viper.GetString("workspace_dir")
-	if workspaceDir == "" {
-		// Use default directory in user's home
-		home, err := os.UserHomeDir()
-		if err != nil {
-			out.Pfailf("Failed to get user home directory: %v\n", err)
-			os.Exit(1)
-		}
-		workspaceDir = filepath.Join(home, "devplan", "workspace")
-
-		// Save to config for future use
-		viper.Set("workspace_dir", workspaceDir)
-		err = viper.WriteConfig()
-		if err != nil {
-			out.Pfailf("Failed to write config: %v\n", err)
-			// Continue anyway, just log the error
-		}
+func check(err error) {
+	if err != nil {
+		fmt.Println(out.Failf("Error: %v", err))
+		os.Exit(1)
 	}
-
-	return workspaceDir
 }
