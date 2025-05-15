@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func createCursorRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
 	rules := []Rule{
 		{Name: "flow", Content: devFlowRule, Header: getCursorRuleHeader(CursorHeader{
 			Description: devFlowRuleDescription,
@@ -21,18 +21,18 @@ func createCursorRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSu
 		})},
 	}
 
-	if featurePrompt != nil {
-		featID, err := prompts.GetPromptFeatureID(featurePrompt)
+	if prompt != nil {
+		targetID, err := prompts.GetTargetID(prompt)
 		if err != nil {
 			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
 		}
 		rules = append(rules, Rule{
 			Name:    "current_feature",
-			Content: featurePrompt.GetContent(),
+			Content: prompt.GetContent(),
 			Header: getCursorRuleHeader(CursorHeader{
 				Description: currentFeatRuleDescription,
 			}),
-			FeatureID: featID,
+			TargetID: targetID,
 		})
 	}
 	if summary := repoSummary.GetSummary().GetContent(); summary != "" {

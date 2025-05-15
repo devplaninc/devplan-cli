@@ -5,9 +5,9 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	company2 "github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 )
 
 type summariesResult struct {
@@ -15,14 +15,14 @@ type summariesResult struct {
 	err  error
 }
 
-func RepoSummary(feature *documents.DocumentEntity, repo git.RepoInfo) (*artifacts.ArtifactRepoSummary, error) {
+func RepoSummary(target picker.DevTarget, repo git.RepoInfo) (*artifacts.ArtifactRepoSummary, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cl := devplan.NewClient(devplan.Config{})
 	sumRespChan := make(chan summariesResult, 1)
 	go func() {
 		defer cancel()
-		sumResp, err := cl.GetRepoSummaries(feature.GetCompanyId())
+		sumResp, err := cl.GetRepoSummaries(target.ProjectWithDocs.GetProject().GetCompanyId())
 		if err != nil {
 			sumRespChan <- summariesResult{err: err}
 			return

@@ -5,7 +5,7 @@ import (
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 )
 
-func GetFeaturePrompt(featureID string, docs []*documents.DocumentEntity) (*documents.DocumentEntity, error) {
+func GetTargetPrompt(target DevTarget, docs []*documents.DocumentEntity) (*documents.DocumentEntity, error) {
 	codeAssist := getCodingAssistant(docs)
 	if codeAssist == nil {
 		return nil, nil
@@ -14,11 +14,12 @@ func GetFeaturePrompt(featureID string, docs []*documents.DocumentEntity) (*docu
 		if d.GetParentId() != codeAssist.GetId() {
 			continue
 		}
-		featID, err := prompts.GetPromptFeatureID(d)
+		targetID, err := prompts.GetTargetID(d)
 		if err != nil {
 			return nil, err
 		}
-		if featID == featureID {
+		if (target.SingleShot && targetID == prompts.CombinedFeatureID) ||
+			(!target.SingleShot && targetID == target.SpecificFeature.GetId()) {
 			return d, nil
 		}
 	}
