@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"os"
 	"path"
@@ -34,7 +33,7 @@ const (
 )
 
 func create() *cobra.Command {
-	featPicker := &picker.FeatureCmd{}
+	targetPicker := &picker.TargetCmd{}
 	var repoName string
 	cmd := &cobra.Command{
 		Use:   "clone",
@@ -42,42 +41,42 @@ func create() *cobra.Command {
 		Long: `Clone a repository and focus on a feature.
 This command streamlines the workflow of cloning a repository and focusing on a feature.
 It will clone the repository into the configured workplace directory and set up the necessary rules.`,
-		PreRunE: featPicker.PreRun,
+		PreRunE: targetPicker.PreRun,
 		Run: func(_ *cobra.Command, _ []string) {
-			runClone(featPicker, repoName)
+			runClone(targetPicker, repoName)
 		},
 	}
-	featPicker.Prepare(cmd)
+	targetPicker.Prepare(cmd)
 	cmd.Flags().StringVarP(&repoName, "repo", "r", "", "Repository to clone (full name or url)")
 
 	return cmd
 }
 
-func runClone(featPicker *picker.FeatureCmd, repoName string) {
-	assistants, err := picker.AssistantForIDE(featPicker.IDEName)
+func runClone(targetPicker *picker.TargetCmd, repoName string) {
+	assistants, err := picker.AssistantForIDE(targetPicker.IDEName)
 	check(err)
-	feat, err := picker.Feature(featPicker)
+	target, err := picker.Target(targetPicker)
 	check(err)
-	feature := feat.Feature
-	project := feat.ProjectWithDocs
+	project := target.ProjectWithDocs
 
-	repo, err := confirmRepository(repoName, feature.GetCompanyId())
+	repo, err := confirmRepository(repoName, project.GetProject().GetCompanyId())
 	check(err)
 	repoURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
 
-	repoPath, gitRepo, err := prepareRepository(featPicker, repoURL, feature)
+	repoPath, gitRepo, err := prepareRepository(targetPicker, repoURL, target)
 	check(err)
-	summary, err := loaders.RepoSummary(feature, gitRepo)
+	summary, err := loaders.RepoSummary(target, gitRepo)
 	check(err)
-	featPrompt, err := picker.GetFeaturePrompt(feature.GetId(), project.GetDocs())
+
+	prompt, err := picker.GetTargetPrompt(target, project.GetDocs())
 	check(err)
 
 	err = os.Chdir(repoPath)
 	check(err)
-	check(ide.WriteMultiIDE(assistants, featPrompt, summary, featPicker.Yes))
+	check(ide.WriteMultiIDE(assistants, prompt, summary, targetPicker.Yes))
 
-	if featPicker.IDEName != "" {
-		launch(ide.IDE(featPicker.IDEName), repoPath)
+	if targetPicker.IDEName != "" {
+		launch(ide.IDE(targetPicker.IDEName), repoPath)
 		return
 	}
 	displayPath := pathWithTilde(repoPath)
@@ -86,12 +85,14 @@ func runClone(featPicker *picker.FeatureCmd, repoName string) {
 	fmt.Println("Now you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
 }
 
-func prepareRepository(featPicker *picker.FeatureCmd, repoURL string, feature *documents.DocumentEntity) (string, git.RepoInfo, error) {
-	repoPath, exists, err := getRepoPath(repoURL, feature)
+func prepareRepository(
+	featPicker *picker.TargetCmd, repoURL string, target picker.DevTarget,
+) (string, git.RepoInfo, error) {
+	repoPath, exists, err := getRepoPath(repoURL, target)
 	check(err)
 	displayPath := pathWithTilde(repoPath)
 	if !exists {
-		branchName := sanitizeName(feature.GetTitle(), 30)
+		branchName := sanitizeName(target.GetName(), 30)
 		check(cloneRepository(repoURL, repoPath, branchName))
 		return repoPath, git.EnsureRepoPath(repoPath), nil
 	}
@@ -194,9 +195,9 @@ func sanitizeName(name string, maxLen int) string {
 	return reg.ReplaceAllString(name, "")
 }
 
-func getRepoPath(url string, feature *documents.DocumentEntity) (string, bool, error) {
+func getRepoPath(url string, target picker.DevTarget) (string, bool, error) {
 	workspaceDir := getWorkspaceDir()
-	dirName := sanitizeName(feature.GetTitle(), 30)
+	dirName := sanitizeName(target.GetName(), 30)
 	repoParent := filepath.Join(workspaceDir, "features", fmt.Sprintf("%s", dirName))
 	repoFullName, err := git.GetFullName(url)
 	parts := strings.Split(repoFullName, "/")

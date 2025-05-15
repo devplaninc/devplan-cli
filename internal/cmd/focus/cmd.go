@@ -16,34 +16,33 @@ var (
 )
 
 func create() *cobra.Command {
-	featPicker := &picker.FeatureCmd{}
+	targetPicker := &picker.TargetCmd{}
 	cmd := &cobra.Command{
 		Use:     "focus",
 		Aliases: []string{"f"},
 		Short:   "Focus on a specific feature of a project",
-		PreRunE: featPicker.PreRun,
+		PreRunE: targetPicker.PreRun,
 		Run: func(_ *cobra.Command, _ []string) {
-			runFocus(featPicker)
+			runFocus(targetPicker)
 		},
 	}
-	featPicker.Prepare(cmd)
+	targetPicker.Prepare(cmd)
 	return cmd
 }
 
-func runFocus(featPicker *picker.FeatureCmd) {
+func runFocus(targetPicker *picker.TargetCmd) {
 	repo := git.EnsureInRepo()
 	out.Psuccessf("Current repository: %+v\n", repo.FullNames[0])
-	ides, err := picker.AssistantForIDE(featPicker.IDEName)
+	ides, err := picker.AssistantForIDE(targetPicker.IDEName)
 	check(err)
-	feat, err := picker.Feature(featPicker)
+	target, err := picker.Target(targetPicker)
 	check(err)
-	feature := feat.Feature
-	project := feat.ProjectWithDocs
-	summary, err := loaders.RepoSummary(feature, repo)
+	project := target.ProjectWithDocs
+	summary, err := loaders.RepoSummary(target, repo)
 	check(err)
-	featPrompt, err := picker.GetFeaturePrompt(feature.GetId(), project.GetDocs())
+	featPrompt, err := picker.GetTargetPrompt(target, project.GetDocs())
 	check(err)
-	check(ide.WriteMultiIDE(ides, featPrompt, summary, featPicker.Yes))
+	check(ide.WriteMultiIDE(ides, featPrompt, summary, targetPicker.Yes))
 	fmt.Println("\nNow you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
 }
 

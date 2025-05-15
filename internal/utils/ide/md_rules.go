@@ -42,14 +42,14 @@ func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, re
 		{Name: "insights", Content: insightsRule},
 	}
 	if featurePrompt != nil {
-		featID, err := prompts.GetPromptFeatureID(featurePrompt)
+		targetID, err := prompts.GetTargetID(featurePrompt)
 		if err != nil {
 			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
 		}
 		rules = append(rules, Rule{
-			Name:      "current_feature",
-			Content:   featurePrompt.GetContent(),
-			FeatureID: featID,
+			Name:     "current_feature",
+			Content:  featurePrompt.GetContent(),
+			TargetID: targetID,
 		})
 	}
 	if summary := repoSummary.GetSummary().GetContent(); summary != "" {

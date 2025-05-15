@@ -18,24 +18,28 @@ const (
 	laterSection = "later-projects"
 )
 
-type FeatureCmd struct {
-	CompanyID int32
-	ProjectID string
-	FeatureID string
-	IDEName   string
-	Yes       bool
+type TargetCmd struct {
+	CompanyID  int32
+	ProjectID  string
+	FeatureID  string
+	IDEName    string
+	Yes        bool
+	SingleShot bool
 }
 
-func (c *FeatureCmd) PreRun(_ *cobra.Command, _ []string) error {
+func (c *TargetCmd) PreRun(_ *cobra.Command, _ []string) error {
 	allowedIDEs := ide.GetKnown()
 	// Validate mode flag if provided
 	if c.IDEName != "" && !slices.Contains(allowedIDEs, ide.IDE(c.IDEName)) {
 		return fmt.Errorf("allowed values for IDE are %v, got: %s", allowedIDEs, c.IDEName)
 	}
+	if c.SingleShot && c.FeatureID != "" {
+		return fmt.Errorf("-s (--single-shot) cannot be used with -f (--feature)")
+	}
 	return nil
 }
 
-func (c *FeatureCmd) Prepare(cmd *cobra.Command) {
+func (c *TargetCmd) Prepare(cmd *cobra.Command) {
 	knownIDEs := ide.GetKnown()
 	var ideStr []string
 	for _, i := range knownIDEs {
@@ -44,47 +48,62 @@ func (c *FeatureCmd) Prepare(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(
 		&c.IDEName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(ideStr, ", ")))
 	cmd.Flags().StringVarP(&c.ProjectID, "project", "p", "", "Project id to focus on")
-	cmd.Flags().StringVarP(&c.FeatureID, "feature", "f", "", "Feature id to focus on")
+	cmd.Flags().StringVarP(&c.FeatureID, "feature", "f", "", "Target id to focus on")
 	cmd.Flags().Int32VarP(&c.CompanyID, "company", "c", -1, "Company id to focus on")
 	cmd.Flags().BoolVarP(&c.Yes, "yes", "y", false, "Execute without confirmation")
+	cmd.Flags().BoolVarP(&c.SingleShot, "single-shot", "s", false, "Use a single-shot prompt for all features (cannot be used with -f)")
 }
 
-type PickedFeature struct {
-	Feature         *documents.DocumentEntity
+type DevTarget struct {
+	SpecificFeature *documents.DocumentEntity
+	SingleShot      bool
 	ProjectWithDocs *documents.ProjectWithDocs
+}
+
+func (d DevTarget) GetName() string {
+	if d.SingleShot {
+		return d.ProjectWithDocs.GetProject().GetTitle()
+	}
+	return d.SpecificFeature.GetTitle()
 }
 
 func mainGroupID(companyID int32) string {
 	return fmt.Sprintf("%v-projects", companyID)
 }
 
-func Feature(cmd *FeatureCmd) (PickedFeature, error) {
+func Target(cmd *TargetCmd) (DevTarget, error) {
 	cl := devplan.NewClient(devplan.Config{})
 	self, err := cl.GetSelf()
 	if err != nil {
-		return PickedFeature{}, err
+		return DevTarget{}, err
 	}
 	companyID := cmd.CompanyID
 	projectID := cmd.ProjectID
 	featureID := cmd.FeatureID
+	singleShot := cmd.SingleShot
 	companies := self.GetOwnInfo().GetCompanyDetails()
 	company, err := selector.Company(companies, selector.Props{}, companyID)
 	if err != nil {
-		return PickedFeature{}, err
+		return DevTarget{}, err
 	}
 	project, err := selectProject(cl, company.GetId(), projectID)
 	if err != nil {
-		return PickedFeature{}, err
+		return DevTarget{}, err
 	}
-	features := getFeatures(project)
-	feature, err := selector.Feature(features, selector.Props{}, featureID)
-	if err != nil {
-		return PickedFeature{}, err
-	}
-	return PickedFeature{
-		Feature:         feature,
+	result := DevTarget{
+		SingleShot:      singleShot,
 		ProjectWithDocs: project,
-	}, nil
+	}
+	if !result.SingleShot {
+		features := getFeatures(project)
+		feature, err := selector.Feature(features, selector.Props{}, featureID)
+		if err != nil {
+			return DevTarget{}, err
+		}
+		result.SpecificFeature = feature
+	}
+
+	return result, nil
 }
 
 func selectProject(cl *devplan.Client, companyID int32, projectID string) (*documents.ProjectWithDocs, error) {

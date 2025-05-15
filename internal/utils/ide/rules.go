@@ -14,12 +14,12 @@ import (
 )
 
 type Rule struct {
-	NoPrefix  bool
-	Name      string
-	Content   string
-	Header    string
-	Footer    string
-	FeatureID string
+	NoPrefix bool
+	Name     string
+	Content  string
+	Header   string
+	Footer   string
+	TargetID string
 }
 
 func WriteMultiIDE(
@@ -128,7 +128,7 @@ func WriteRules(rules []Rule, path string, extension string) error {
 			content = fmt.Sprintf("%v\n\n%v", h, content)
 		}
 
-		if featID := rule.FeatureID; featID != "" {
+		if featID := rule.TargetID; featID != "" {
 			content = fmt.Sprintf("%v<!-- feature_id: %v -->\n\n", content, featID)
 		}
 

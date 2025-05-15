@@ -23,15 +23,15 @@ func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repo
 	}
 
 	if featurePrompt != nil {
-		featID, err := prompts.GetPromptFeatureID(featurePrompt)
+		targetID, err := prompts.GetTargetID(featurePrompt)
 		if err != nil {
 			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
 		}
 		rules = append(rules, Rule{
-			Name:      "current_feature",
-			Content:   featurePrompt.GetContent(),
-			Header:    getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
-			FeatureID: featID,
+			Name:     "current_feature",
+			Content:  featurePrompt.GetContent(),
+			Header:   getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
+			TargetID: targetID,
 		})
 	}
 	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
