@@ -1,32 +1,55 @@
 package ide
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"strings"
+	"text/template"
 )
 
-func mdAllOtherRules() string {
-	return fmt.Sprintf(`Also refer to the following files for the details when needed:
+func allOtherRulesSuffix(rulesPath string, ext string) string {
+	const tmpl = `Also refer to the following files for the details when needed:
 
-- [Insights](devplan_insights.md) - %s
-- [Rules](devplan_rules.md) - %s
-- [Repo Overview](devplan_repo_overview.md) - %s (if present)
-- [Current Feature](devplan_current_feature.md) - %s. Always review current feature if it is present.
-`, insightsRuleDescription, generalRuleDescription, repoOverviewRuleDescription, currentFeatRuleDescription)
+- [Insights]({{.Path}}/devplan_insights.{{.Ext}}) - {{.Insights}}
+- [Rules]({{.Path}}/devplan_rules.{{.Ext}}) - {{.Rules}}
+- [Repo Overview]({{.Path}}/devplan_repo_overview.{{.Ext}}) - {{.Overview}} (if present)
+- [Current Feature]({{.Path}}/devplan_current_feature.{{.Ext}}) - {{.Feature}}. Always review current feature if it is present.
+`
+	data := struct {
+		Path     string
+		Insights string
+		Rules    string
+		Overview string
+		Feature  string
+		Ext      string
+	}{
+		Path:     rulesPath,
+		Insights: insightsRuleDescription,
+		Rules:    generalRuleDescription,
+		Overview: repoOverviewRuleDescription,
+		Feature:  currentFeatRuleDescription,
+		Ext:      ext,
+	}
+
+	t := template.Must(template.New("rules").Parse(tmpl))
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		return ""
+	}
+	return buf.String()
 }
 
-var mdReplacements = map[string]string{
-	"@devplan_current_feature.mdc": "%v/devplan_current_feature.md",
-	"@devplan_rules.mdc":           "%v/devplan_rules.md",
-	"@devplan_insights.mdc":        "%v/devplan_insights.md",
-	"@devplan_repo_overview.mdc":   "%v/devplan_repo_overview.md",
-	"@devplan_tests.mdc":           "%v/devplan_tests.md",
-}
-
-func mdPathsReplace(str string, rulesPath string) string {
+func replacePaths(str string, rulesPath string, ext string) string {
+	mdReplacements := map[string]string{
+		"@devplan_current_feature.mdc": "%v/devplan_current_feature." + ext,
+		"@devplan_rules.mdc":           "%v/devplan_rules." + ext,
+		"@devplan_insights.mdc":        "%v/devplan_insights." + ext,
+		"@devplan_repo_overview.mdc":   "%v/devplan_repo_overview." + ext,
+		"@devplan_tests.mdc":           "%v/devplan_tests." + ext,
+	}
 	result := str
 	for k, v := range mdReplacements {
 		vStr := fmt.Sprintf(v, rulesPath)
@@ -37,7 +60,10 @@ func mdPathsReplace(str string, rulesPath string) string {
 
 func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
 	rules := []Rule{
-		{NoPrefix: true, Name: "guidelines", Content: mdPathsReplace(devFlowRule, rulesPath), Footer: mdAllOtherRules()},
+		{NoPrefix: true, Name: "guidelines",
+			Content: replacePaths(devFlowRule, rulesPath, "md"),
+			Footer:  allOtherRulesSuffix(".", "md"),
+		},
 		{Name: "rules", Content: rulesRule},
 		{Name: "insights", Content: insightsRule},
 	}

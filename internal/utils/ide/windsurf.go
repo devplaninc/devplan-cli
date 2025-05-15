@@ -11,14 +11,16 @@ import (
 func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
 	rulesPath := filepath.Join(".windsurf", "rules")
 	rules := []Rule{
-		{Name: "flow", Content: mdPathsReplace(devFlowRule, rulesPath), Header: getWindsurfRuleHeader(WindsurfHeader{
-			Description: devFlowRuleDescription,
-		})},
+		{Name: "flow", Content: replacePaths(devFlowRule, rulesPath, "md"),
+			Header: getWindsurfRuleHeader(WindsurfHeader{Description: devFlowRuleDescription}),
+			Footer: allOtherRulesSuffix(".", "md"),
+		},
 		{Name: "rules", Content: rulesRule, Header: getWindsurfRuleHeader(WindsurfHeader{
 			Description: generalRuleDescription, Globs: ".windsurf/rules/*.md", Trigger: "glob",
 		})},
 		{Name: "insights", Content: insightsRule, Header: getWindsurfRuleHeader(WindsurfHeader{
 			Description: insightsRuleDescription,
+			Trigger:     "model_decision",
 		})},
 	}
 
@@ -35,9 +37,12 @@ func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repo
 		})
 	}
 	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
-		rules = append(rules, Rule{Name: "repo_overview", Content: summary, Header: getWindsurfRuleHeader(
-			WindsurfHeader{Description: repoOverviewRuleDescription},
-		)})
+		rules = append(rules, Rule{Name: "repo_overview",
+			Content: summary,
+			Header: getWindsurfRuleHeader(WindsurfHeader{
+				Description: repoOverviewRuleDescription,
+				Trigger:     "model_decision",
+			})})
 	}
 
 	return WriteRules(rules, rulesPath, "md")

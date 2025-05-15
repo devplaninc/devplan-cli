@@ -10,9 +10,11 @@ import (
 
 func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
 	rules := []Rule{
-		{Name: "flow", Content: devFlowRule, Header: getCursorRuleHeader(CursorHeader{
-			Description: devFlowRuleDescription,
-		})},
+		{Name: "flow",
+			Content: replacePaths(devFlowRule, ".cursor/rules", "mdc"),
+			Header:  getCursorRuleHeader(CursorHeader{Description: devFlowRuleDescription}),
+			Footer:  allOtherRulesSuffix(".cursor/rules", "mdc"),
+		},
 		{Name: "rules", Content: rulesRule, Header: getCursorRuleHeader(CursorHeader{
 			Description: generalRuleDescription, Globs: ".cursor/rules/*.mdc",
 		})},
