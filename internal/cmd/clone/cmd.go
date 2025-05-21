@@ -54,9 +54,8 @@ func runClone(targetPicker *picker.TargetCmd, repoName string) {
 
 	repo, err := confirmRepository(repoName, project.GetProject().GetCompanyId())
 	check(err)
-	repoURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
 
-	repoPath, gitRepo, err := prepareRepository(targetPicker, repoURL, target)
+	repoPath, gitRepo, err := prepareRepository(targetPicker, repo, target)
 	check(err)
 	summary, err := loaders.RepoSummary(target, gitRepo)
 	check(err)
@@ -79,14 +78,14 @@ func runClone(targetPicker *picker.TargetCmd, repoName string) {
 }
 
 func prepareRepository(
-	featPicker *picker.TargetCmd, repoURL string, target picker.DevTarget,
+	featPicker *picker.TargetCmd, repo *integrations.GitHubRepository, target picker.DevTarget,
 ) (string, git.RepoInfo, error) {
-	repoPath, exists, err := getRepoPath(repoURL, target)
+	repoPath, exists, err := getRepoPath(repo, target)
 	check(err)
 	displayPath := pathWithTilde(repoPath)
 	if !exists {
 		branchName := sanitizeName(target.GetName(), 30)
-		check(cloneRepository(repoURL, repoPath, branchName))
+		check(cloneRepository(repo, repoPath, branchName))
 		return repoPath, git.EnsureRepoPath(repoPath), nil
 	}
 	if len(featPicker.IDEName) == 0 {
@@ -156,15 +155,12 @@ func sanitizeName(name string, maxLen int) string {
 	return reg.ReplaceAllString(name, "")
 }
 
-func getRepoPath(url string, target picker.DevTarget) (string, bool, error) {
+func getRepoPath(repo *integrations.GitHubRepository, target picker.DevTarget) (string, bool, error) {
 	dirName := sanitizeName(target.GetName(), 30)
 	repoParent := filepath.Join(workspace.GetFeaturesPath(), fmt.Sprintf("%s", dirName))
-	repoFullName, err := git.GetFullName(url)
+	repoFullName := repo.GetFullName()
 	parts := strings.Split(repoFullName, "/")
 	repoName := parts[len(parts)-1]
-	if err != nil {
-		return "", false, fmt.Errorf("failed to get repository name from URL: %v", err)
-	}
 	repoPath := filepath.Join(repoParent, repoName)
 	if _, err := os.Stat(repoPath); err == nil {
 		return repoPath, true, nil
@@ -172,12 +168,30 @@ func getRepoPath(url string, target picker.DevTarget) (string, bool, error) {
 	return repoPath, false, nil
 }
 
-func cloneRepository(url string, path string, branchToCreate string) error {
+func cloneRepository(repo *integrations.GitHubRepository, path string, branchToCreate string) error {
+	var err error
+	httpsURL := fmt.Sprintf("https://github.com/%s", repo.GetFullName())
+	if err = tryRepoClone(httpsURL, path, branchToCreate); err == nil {
+		return nil
+	}
+	sshURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
+	if err = tryRepoClone(sshURL, path, branchToCreate); err == nil {
+		return nil
+	}
+	return fmt.Errorf("failed to clone repository using both SSH and HTTPS.\n"+
+		"Please ensure you have:\n"+
+		"1. Valid GitHub credentials configured\n"+
+		"2. Either SSH keys set up or GitHub Personal Access Token configured\n"+
+		"3. Proper network access to GitHub\n"+
+		"Original error: %w", err)
+}
+
+func tryRepoClone(url string, path string, branchToCreate string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sp := spinner.New(
 		fmt.Sprintf("Cloning repository %s into %s", out.H(url), out.H(path)),
-		fmt.Sprintf("Repository cloned successfully to %v", out.H(path)),
+		fmt.Sprintf("Repository %v cloned successfully to %v", out.H(url), out.H(path)),
 	)
 
 	// Clone in a goroutine so we can show a spinner
