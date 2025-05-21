@@ -1,11 +1,14 @@
 package workspace
 
 import (
+	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/spf13/viper"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 var defaultWorkspace = path.Join("devplan", "workspace")
@@ -50,7 +53,31 @@ func GetFeaturesPath() string {
 	return filepath.Join(GetPath(), "features")
 }
 
-func ListClonedFeatures() ([]string, error) {
+type ClonedFeature struct {
+	DirName  string
+	FullPath string
+	Repos    []ClonedRepo
+}
+
+func (f ClonedFeature) GetDisplayName() string {
+	var repoNames []string
+	for _, repo := range f.Repos {
+		if len(repo.Repo.FullNames) > 0 {
+			repoNames = append(repoNames, repo.Repo.FullNames[0])
+		}
+	}
+	if len(repoNames) == 0 {
+		return f.DirName
+	}
+	return fmt.Sprintf("%s (%s)", f.DirName, strings.Join(repoNames, ", "))
+}
+
+type ClonedRepo struct {
+	DirName string
+	Repo    git.RepoInfo
+}
+
+func ListClonedFeatures() ([]ClonedFeature, error) {
 	featuresPath := GetFeaturesPath()
 	if _, err := os.Stat(featuresPath); os.IsNotExist(err) {
 		return nil, nil
@@ -61,13 +88,39 @@ func ListClonedFeatures() ([]string, error) {
 		return nil, err
 	}
 
-	var features []string
+	var result []ClonedFeature
 	for _, entry := range entries {
 		if entry.IsDir() {
-			features = append(features, entry.Name())
+			fullPath := filepath.Join(featuresPath, entry.Name())
+			result = append(result, ClonedFeature{
+				DirName:  entry.Name(),
+				FullPath: fullPath,
+				Repos:    GetFeatureRepositories(fullPath),
+			})
 		}
 	}
-	return features, nil
+	return result, nil
+}
+
+func GetFeatureRepositories(featurePath string) []ClonedRepo {
+	entries, err := os.ReadDir(featurePath)
+	if err != nil {
+		return nil
+	}
+	var result []ClonedRepo
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subDirPath := filepath.Join(featurePath, entry.Name())
+			repo, err := git.RepoAtPath(subDirPath)
+			if err == nil && len(repo.FullNames) > 0 {
+				result = append(result, ClonedRepo{
+					DirName: entry.Name(),
+					Repo:    repo,
+				})
+			}
+		}
+	}
+	return result
 }
 
 func GetFeaturePath(dirName string) string {

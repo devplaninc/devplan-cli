@@ -26,20 +26,25 @@ func create() *cobra.Command {
 }
 
 func runClean() {
-	features, err := workspace.ListClonedFeatures()
+	clonedFeatures, err := workspace.ListClonedFeatures()
 	check(err)
-	if len(features) == 0 {
+	if len(clonedFeatures) == 0 {
 		out.Psuccessf("Nothing to clean!")
 		return
 	}
 
+	var displayItems []string
+	for _, f := range clonedFeatures {
+		displayItems = append(displayItems, f.GetDisplayName())
+	}
+
 	prompt := promptui.Select{
 		Label: "Select a feature to clean up",
-		Items: features,
+		Items: displayItems,
 	}
 	idx, _, err := prompt.Run()
 	check(err)
-	selectedFeature := features[idx]
+	selectedFeature := clonedFeatures[idx].DirName
 
 	featurePath := workspace.GetFeaturePath(selectedFeature)
 

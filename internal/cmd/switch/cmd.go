@@ -40,10 +40,14 @@ func runSwitch(ideName string) {
 		os.Exit(1)
 	}
 
-	// Prompt user to select a feature
+	var displayItems []string
+	for _, f := range features {
+		displayItems = append(displayItems, f.GetDisplayName())
+	}
+
 	prompt := promptui.Select{
 		Label: "Select a feature to switch to",
-		Items: features,
+		Items: displayItems,
 	}
 	idx, _, err := prompt.Run()
 	if err != nil {
@@ -52,7 +56,7 @@ func runSwitch(ideName string) {
 	}
 	selectedFeature := features[idx]
 
-	repoPath := workspace.GetFeaturePath(selectedFeature)
+	repoPath := selectedFeature.FullPath
 
 	// If IDE name is provided, use it
 	if ideName != "" {
@@ -104,21 +108,6 @@ func getIDENames(ides map[ide.IDE]string) []ide.IDE {
 		names = append(names, name)
 	}
 	return names
-}
-
-func listClonedFeatures(featuresDir string) ([]string, error) {
-	entries, err := os.ReadDir(featuresDir)
-	if err != nil {
-		return nil, err
-	}
-
-	var features []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			features = append(features, entry.Name())
-		}
-	}
-	return features, nil
 }
 
 func check(err error) {
