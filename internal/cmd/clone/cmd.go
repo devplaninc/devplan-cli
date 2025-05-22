@@ -17,6 +17,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -168,16 +169,33 @@ func getRepoPath(repo *integrations.GitHubRepository, target picker.DevTarget) (
 	return repoPath, false, nil
 }
 
+type urlDef struct {
+	url      string
+	protocol prefs.GitProtocol
+}
+
 func cloneRepository(repo *integrations.GitHubRepository, path string, branchToCreate string) error {
-	var err error
+	// Use the last successful protocol from preferences
+	protocol := prefs.GetLastGitProtocol()
 	httpsURL := fmt.Sprintf("https://github.com/%s", repo.GetFullName())
-	if err = tryRepoClone(httpsURL, path, branchToCreate); err == nil {
-		return nil
-	}
 	sshURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
-	if err = tryRepoClone(sshURL, path, branchToCreate); err == nil {
-		return nil
+	var urls []urlDef
+	if protocol == prefs.SSH {
+		urls = []urlDef{{sshURL, prefs.SSH}, {httpsURL, prefs.HTTPS}}
+	} else {
+		urls = []urlDef{{httpsURL, prefs.HTTPS}, {sshURL, prefs.SSH}}
 	}
+	var err error
+	for _, url := range urls {
+		err = tryRepoClone(url.url, path, branchToCreate)
+		if err == nil {
+			if protocol != url.protocol {
+				prefs.SetLastGitProtocol(url.protocol)
+			}
+			return nil
+		}
+	}
+
 	return fmt.Errorf("failed to clone repository using both SSH and HTTPS.\n"+
 		"Please ensure you have:\n"+
 		"1. Valid GitHub credentials configured\n"+
