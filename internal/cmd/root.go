@@ -8,7 +8,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
 	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/devplaninc/devplan-cli/internal/utils/globals"
+	prefs_utils "github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"os"
 	"path/filepath"
 
@@ -35,7 +35,7 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&globals.Domain, "domain", "", "domain to use (app, beta, local)")
+	rootCmd.PersistentFlags().StringVar(&prefs_utils.Domain, "domain", "", "domain to use (app, beta, local)")
 	if err := rootCmd.PersistentFlags().MarkHidden("domain"); err != nil {
 		fmt.Printf("Failed to initialize CLI (domain flag): %v\n)", err)
 		os.Exit(1)

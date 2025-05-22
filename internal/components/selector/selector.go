@@ -108,7 +108,7 @@ func (m model) View() string {
 	return "\n" + m.list.View()
 }
 
-func runSelector(title string, items []item, props Props) (string, error) {
+func runSelector(title string, items []item, props Props, defaultIndex ...int) (string, error) {
 	listItems := make([]list.Item, len(items))
 	for i, it := range items {
 		listItems[i] = it
@@ -122,6 +122,11 @@ func runSelector(title string, items []item, props Props) (string, error) {
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
+
+	// Set default selection if provided
+	if len(defaultIndex) > 0 && defaultIndex[0] >= 0 && defaultIndex[0] < len(items) {
+		l.Select(defaultIndex[0])
+	}
 
 	m := model{list: l, title: title}
 

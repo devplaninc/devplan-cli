@@ -8,20 +8,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/devplaninc/devplan-cli/internal/utils/globals"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"net/http"
 	"os"
 	"os/user"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
 func VerifyAuth() (string, error) {
-	key := viper.GetString(globals.APIkeyConfig)
+	key := viper.GetString(prefs.APIkeyConfig)
 	if key != "" {
 		return key, nil
 	}
@@ -55,11 +54,7 @@ func RequestAuth() (string, error) {
 			resChan <- keyResult{err: err}
 			return
 		}
-		err = storeAPIKey(apiKey)
-		if err != nil {
-			resChan <- keyResult{err: fmt.Errorf("failed to store API key: %w", err)}
-			return
-		}
+		prefs.SetAPIKey(apiKey)
 		resChan <- keyResult{key: apiKey}
 	}()
 
@@ -179,30 +174,4 @@ func waitForAuthentication(requestID string) (string, error) {
 	}
 
 	return "", fmt.Errorf("authentication timed out")
-}
-
-// storeAPIKey stores the API key in the configuration file using protobuf
-func storeAPIKey(apiKey string) error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-
-	configDir := filepath.Join(home, ".devplan")
-	if _, err := os.Stat(configDir); os.IsNotExist(err) {
-		err = os.MkdirAll(configDir, 0755)
-		if err != nil {
-			return fmt.Errorf("failed to create config directory: %w", err)
-		}
-	}
-
-	viper.Set(globals.APIkeyConfig, apiKey)
-	viper.SetConfigFile(filepath.Join(configDir, "config.json"))
-	err = viper.WriteConfig()
-	if err != nil && !os.IsNotExist(err) {
-		// Only log this error, don't return it
-		fmt.Printf("Warning: Failed to update legacy config file: %v\n", err)
-	}
-
-	return nil
 }

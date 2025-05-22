@@ -2,7 +2,7 @@ package devplan
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/globals"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/user"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -24,7 +24,7 @@ type Client struct {
 func NewClient(config Config) *Client {
 	baseURL := config.BaseURL
 	if baseURL == "" {
-		baseURL = GetBaseURL(globals.Domain)
+		baseURL = GetBaseURL(prefs.Domain)
 	}
 	return &Client{BaseURL: baseURL, client: &http.Client{}}
 }

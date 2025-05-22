@@ -32,6 +32,20 @@ devplan update --to=1.2.3
 devplan update --list
 ```
 
+## Preferences
+
+The CLI saves your preferences for company, project, and git protocol selections, and uses them as defaults on subsequent runs.
+
+### Reset preferences
+
+You can reset all saved preferences by running:
+
+```bash
+devplan prefs reset
+```
+
+This will clear the saved preferences for company, project, and git protocol from the local config file.
+
 ## Installation
 
 ### Homebrew (macOS)

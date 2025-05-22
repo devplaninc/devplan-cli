@@ -2,8 +2,8 @@ package picker
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/globals"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/manifoldco/promptui"
 	"slices"
 )
@@ -16,8 +16,8 @@ func AssistantForIDE(ideName string) ([]ide.Assistant, error) {
 	if len(assistants) > 0 {
 		return assistants, nil
 	}
-	if lastAsst, ok := globals.GetLastAssistant(); ok {
-		return []ide.Assistant{lastAsst}, nil
+	if lastAsst, ok := prefs.GetLastAssistant(); ok {
+		return []ide.Assistant{ide.Assistant(lastAsst)}, nil
 	}
 	allowedAssistants := ide.GetAssistants()
 	fmt.Printf("No AssistantForIDE auto detected or provided.\n")
@@ -30,7 +30,7 @@ func AssistantForIDE(ideName string) ([]ide.Assistant, error) {
 	if asst == "" || !slices.Contains(allowedAssistants, asst) {
 		return nil, fmt.Errorf("no valid assistant selected")
 	}
-	globals.SetLastAssistant(asst)
+	prefs.SetLastAssistant(string(asst))
 	return []ide.Assistant{asst}, nil
 }
 
