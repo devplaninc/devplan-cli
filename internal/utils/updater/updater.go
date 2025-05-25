@@ -67,7 +67,8 @@ func (c *Client) GetVersionConfig() (*cli.Version, error) {
 		return nil, fmt.Errorf("failed to read production version: %w", err)
 	}
 	ver := &cli.Version{}
-	return ver, protojson.Unmarshal(body, ver)
+	u := protojson.UnmarshalOptions{DiscardUnknown: true}
+	return ver, u.Unmarshal(body, ver)
 }
 
 // CheckForUpdate checks if there is a newer production version available

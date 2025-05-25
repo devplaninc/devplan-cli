@@ -12,7 +12,8 @@ func GetDocDetails(promptDoc *documents.DocumentEntity) (*documents.CustomDocume
 		return nil, nil
 	}
 	details := &documents.CustomDocumentDetails{}
-	return details, protojson.Unmarshal([]byte(promptDoc.GetDetails()), details)
+	u := protojson.UnmarshalOptions{DiscardUnknown: true}
+	return details, u.Unmarshal([]byte(promptDoc.GetDetails()), details)
 }
 
 func GetTargetID(promptDoc *documents.DocumentEntity) (string, error) {
