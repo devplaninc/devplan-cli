@@ -59,8 +59,9 @@ func (c *Client) getParsed(path string, msg proto.Message) error {
 	if err != nil {
 		return fmt.Errorf("failed to get response: %w", err)
 	}
+	u := protojson.UnmarshalOptions{DiscardUnknown: true}
 
-	if err := protojson.Unmarshal(body, msg); err != nil {
+	if err := u.Unmarshal(body, msg); err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
