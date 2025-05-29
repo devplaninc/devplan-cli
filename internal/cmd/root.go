@@ -7,7 +7,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
-	"github.com/devplaninc/devplan-cli/internal/out"
 	prefs_utils "github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"os"
 	"path/filepath"
@@ -68,6 +67,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		out.Pfailf("Failed to read config file: %v\n", err)
+		// Just ignore. If the config doesn't exist yet, we can skip reading it.
 	}
 }
