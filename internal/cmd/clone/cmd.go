@@ -6,7 +6,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -79,7 +78,7 @@ func runClone(targetPicker *picker.TargetCmd, repoName string) {
 }
 
 func prepareRepository(
-	featPicker *picker.TargetCmd, repo *integrations.GitHubRepository, target picker.DevTarget,
+	featPicker *picker.TargetCmd, repo git.RepoInfo, target picker.DevTarget,
 ) (string, git.RepoInfo, error) {
 	repoPath, exists, err := getRepoPath(repo, target)
 	check(err)
@@ -117,20 +116,53 @@ func launch(ideName ide.IDE, repoPath string) {
 		ideName)
 }
 
-func confirmRepository(repoName string, companyID int32) (*integrations.GitHubRepository, error) {
+func checkIfURL(repoName string) (git.RepoInfo, bool, error) {
+	if git.IsValidURL(repoName) {
+		repo, err := git.GetRepoInfoFromURL(repoName)
+		if err == nil {
+			prefs.AddExtraGitURL(repoName)
+		}
+		return repo, err == nil, err
+	}
+	return git.RepoInfo{}, false, nil
+}
+
+func confirmRepository(repoName string, companyID int32) (git.RepoInfo, error) {
+	repo, ok, err := checkIfURL(repoName)
+	if ok {
+		return repo, nil
+	}
+	if err != nil {
+		return git.RepoInfo{}, err
+	}
 	cl := devplan.NewClient(devplan.Config{})
 	resp, err := cl.GetIntegration(companyID, "github")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get integration: %v", err)
+		return git.RepoInfo{}, fmt.Errorf("failed to get integration: %v", err)
 	}
 	var repoNames []string
-	byName := make(map[string]*integrations.GitHubRepository)
+	byName := make(map[string]git.RepoInfo)
 	for _, repo := range resp.GetInfo().GetGithub().GetRepositories() {
+		repoInfo := git.RepoInfo{
+			FullNames: []string{repo.GetFullName()},
+			URLs:      []string{repo.GetUrl()},
+		}
 		if len(repoName) > 0 && strings.Contains(strings.ToLower(repo.GetFullName()), strings.ToLower(repoName)) {
-			return repo, nil
+			return repoInfo, nil
 		}
 		repoNames = append(repoNames, repo.GetFullName())
-		byName[repo.GetFullName()] = repo
+		byName[repo.GetFullName()] = repoInfo
+	}
+	for _, url := range prefs.GetExtraGitURLs() {
+		repo, err := git.GetRepoInfoFromURL(url)
+		if err != nil {
+			// Ignoring the repo we cannot parse
+			continue
+		}
+		if _, ok := byName[repo.GetFullName()]; !ok {
+			repoNames = append(repoNames, repo.GetFullName())
+			byName[repo.GetFullName()] = repo
+		}
 	}
 
 	// Prompt user to select a repository
@@ -140,7 +172,7 @@ func confirmRepository(repoName string, companyID int32) (*integrations.GitHubRe
 	}
 	idx, _, err := prompt.Run()
 	if err != nil {
-		return nil, fmt.Errorf("repository selection failed: %v", err)
+		return git.RepoInfo{}, fmt.Errorf("repository selection failed: %v", err)
 	}
 	selectedRepoName := repoNames[idx]
 	return byName[selectedRepoName], nil
@@ -156,7 +188,7 @@ func sanitizeName(name string, maxLen int) string {
 	return reg.ReplaceAllString(name, "")
 }
 
-func getRepoPath(repo *integrations.GitHubRepository, target picker.DevTarget) (string, bool, error) {
+func getRepoPath(repo git.RepoInfo, target picker.DevTarget) (string, bool, error) {
 	dirName := sanitizeName(target.GetName(), 30)
 	repoParent := filepath.Join(workspace.GetFeaturesPath(), fmt.Sprintf("%s", dirName))
 	repoFullName := repo.GetFullName()
@@ -174,7 +206,7 @@ type urlDef struct {
 	protocol prefs.GitProtocol
 }
 
-func cloneRepository(repo *integrations.GitHubRepository, path string, branchToCreate string) error {
+func cloneRepository(repo git.RepoInfo, path string, branchToCreate string) error {
 	// Use the last successful protocol from preferences
 	protocol := prefs.GetLastGitProtocol()
 	httpsURL := fmt.Sprintf("https://github.com/%s", repo.GetFullName())

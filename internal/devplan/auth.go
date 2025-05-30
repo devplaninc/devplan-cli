@@ -9,7 +9,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"net/http"
@@ -20,7 +19,7 @@ import (
 )
 
 func VerifyAuth() (string, error) {
-	key := viper.GetString(prefs.APIkeyConfig)
+	key := prefs.GetAPIKey()
 	if key != "" {
 		return key, nil
 	}

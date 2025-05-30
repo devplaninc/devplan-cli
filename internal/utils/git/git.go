@@ -26,6 +26,10 @@ func (r RepoInfo) MatchesName(fullName string) bool {
 	return false
 }
 
+func (r RepoInfo) GetFullName() string {
+	return r.FullNames[0]
+}
+
 func IsNotInRepoErr(err error) bool {
 	return errors.Is(err, git.ErrRepositoryNotExists)
 }
@@ -74,9 +78,20 @@ func RepoAtPath(path string) (RepoInfo, error) {
 	return RepoInfo{URLs: urls, FullNames: fullNames}, nil
 }
 
+func GetRepoInfoFromURL(url string) (RepoInfo, error) {
+	fn, err := GetFullName(url)
+	if err != nil {
+		return RepoInfo{}, err
+	}
+	return RepoInfo{URLs: []string{url}, FullNames: []string{fn}}, nil
+}
+
+func IsValidURL(url string) bool {
+	return strings.Contains(url, "://") || strings.Contains(url, "@")
+}
+
 func GetFullName(url string) (string, error) {
-	// Basic validation for URL format
-	if !strings.Contains(url, "://") && !strings.Contains(url, "@") {
+	if !IsValidURL(url) {
 		return "", fmt.Errorf("invalid URL format: %s", url)
 	}
 

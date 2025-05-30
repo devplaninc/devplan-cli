@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"os"
 	"path/filepath"
 )
@@ -15,9 +16,10 @@ const (
 	LastCompanyIDKey    = "last_company_id"
 	LastProjectIDKey    = "last_project_id"
 	LastGitProtocolKey  = "last_git_protocol"
+	GitURLsKey          = "git_urls"
 	LastAssistantConfig = "last_assistant"
 
-	APIkeyConfig = "apikey"
+	apiKeyConfig = "apikey"
 )
 
 func init() {
@@ -32,7 +34,22 @@ func init() {
 			panic(fmt.Errorf("failed to create config directory: %w", err))
 		}
 	}
-	viper.SetConfigFile(filepath.Join(configDir, "config.json"))
+	configPath := filepath.Join(configDir, "config.json")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		_, err = os.Create(configPath)
+		if err != nil {
+			panic(fmt.Errorf("failed to create config file: %w", err))
+		}
+	}
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType("json")
+	viper.SetEnvPrefix("devplan")
+	viper.AutomaticEnv() // read in environment variables that match
+
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err != nil {
+		// Just ignore. If the config doesn't exist yet, we can skip reading it.
+	}
 }
 
 // GitProtocol represents the git protocol to use (https or ssh)
@@ -93,9 +110,27 @@ func SetLastAssistant(asst string) {
 }
 
 func SetAPIKey(apiKey string) {
-	viper.Set(APIkeyConfig, apiKey)
+	viper.Set(apiKeyConfig, apiKey)
 	err := viper.WriteConfig()
 	if err != nil {
-		out.Pfailf("Failed to write config: %v\n", err)
+		out.Pfailf("\nFailed to write config: %v\n", err)
 	}
+}
+
+func GetAPIKey() string {
+	return viper.GetString(apiKeyConfig)
+}
+
+// AddExtraGitURL saves git URL used for cloning to re-use later.
+func AddExtraGitURL(url string) {
+	urls := viper.GetStringSlice(GitURLsKey)
+	if slices.Contains(urls, url) {
+		return
+	}
+	viper.Set(GitURLsKey, append(urls, url))
+	_ = viper.WriteConfig()
+}
+
+func GetExtraGitURLs() []string {
+	return viper.GetStringSlice(GitURLsKey)
 }
