@@ -48,18 +48,9 @@ This will clear the saved preferences for company, project, and git protocol fro
 
 ## Installation
 
-### Homebrew (macOS)
-
-You can install Devplan CLI using Homebrew:
-
 ```bash
-brew tap devplaninc/tap
-brew install devplan
+/bin/bash -c "$(curl -fsSL https://app.devplan.com/api/cli/install)"
 ```
-
-### Manual Installation
-
-Download the appropriate binary for your platform from the [releases page](https://github.com/devplaninc/devplan-cli/releases).
 
 ## Development Set up
 
