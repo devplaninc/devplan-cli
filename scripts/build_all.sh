@@ -24,6 +24,9 @@ GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o build/devplan-darwin-
 echo "Building for Windows (amd64)..."
 GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o build/devplan-windows-amd64.exe internal/cmd/main/main.go &
 
+echo "Building for Windows (arm64)..."
+GOOS=windows GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o build/devplan-windows-arm64.exe internal/cmd/main/main.go &
+
 # Wait for all background processes to complete
 wait
 
