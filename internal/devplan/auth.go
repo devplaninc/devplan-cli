@@ -1,6 +1,7 @@
 package devplan
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -14,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"strings"
 	"time"
 )
 
@@ -108,7 +108,13 @@ func requestLoginLink() (string, error) {
 	cl := NewClient(Config{})
 	name := keyName()
 	apiKeyRequestURL := fmt.Sprintf("%s/api/v1/apikey/request", cl.BaseURL)
-	resp, err := http.Post(apiKeyRequestURL, "application/json", strings.NewReader(fmt.Sprintf(`{"name":"%s"}`, name)))
+	data := map[string]string{"name": name}
+
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to prepare data to send login link request: %w", err)
+	}
+	resp, err := http.Post(apiKeyRequestURL, "application/json", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return "", fmt.Errorf("failed to send login link request: %w", err)
 	}
