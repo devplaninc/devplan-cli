@@ -50,6 +50,8 @@ tar -czf devplan-darwin-arm64.tar.gz devplan-darwin-arm64
 if command -v zip >/dev/null 2>&1; then
   zip devplan-windows-amd64.zip devplan-windows-amd64.exe
   rm -f devplan-windows-amd64.exe
+  zip devplan-windows-arm64.zip devplan-windows-arm64.exe
+  rm -f devplan-windows-arm64.exe
 else
   echo "Warning: zip command not found, skipping Windows archive creation"
 fi
