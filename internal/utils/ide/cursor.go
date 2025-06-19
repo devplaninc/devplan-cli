@@ -2,13 +2,12 @@ package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"path/filepath"
 )
 
-func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{Name: "flow",
 			Content: replacePaths(devFlowRule, ".cursor/rules", "mdc"),
@@ -24,20 +23,18 @@ func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *
 	}
 
 	if prompt != nil {
-		targetID, err := prompts.GetTargetID(prompt)
+		cfRules, err := generateCurrentFeatureRules(
+			rulePaths{dir: ".cursor/rules", ext: "mdc"},
+			Rule{
+				Header: getCursorRuleHeader(CursorHeader{Description: currentFeatRuleDescription}),
+			},
+			prompt)
 		if err != nil {
-			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
+			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}
-		rules = append(rules, Rule{
-			Name:    "current_feature",
-			Content: prompt.GetContent(),
-			Header: getCursorRuleHeader(CursorHeader{
-				Description: currentFeatRuleDescription,
-			}),
-			TargetID: targetID,
-		})
+		rules = append(rules, cfRules...)
 	}
-	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
+	if summary := repoSummary.GetSummary(); summary != "" {
 		rules = append(rules, Rule{Name: "repo_overview", Content: summary, Header: getCursorRuleHeader(
 			CursorHeader{Description: repoOverviewRuleDescription},
 		)})

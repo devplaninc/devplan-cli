@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	"os"
@@ -13,19 +14,21 @@ import (
 	"strings"
 )
 
+const ruleFileNamePrefix = "devplan_"
+
 type Rule struct {
 	NoPrefix bool
 	Name     string
 	Content  string
 	Header   string
 	Footer   string
-	TargetID string
+	Target   *prompts.Target
 }
 
 func WriteMultiIDE(
 	assistants []Assistant,
 	featPrompt *documents.DocumentEntity,
-	summary *artifacts.ArtifactRepoSummary,
+	summary *integrations.RepositorySummary,
 	yes bool,
 ) error {
 	err := confirmRulesGeneration(assistants, featPrompt, summary, yes)
@@ -41,7 +44,7 @@ func WriteMultiIDE(
 	return nil
 }
 
-func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *artifacts.ArtifactRepoSummary) error {
+func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *integrations.RepositorySummary) error {
 	var err error
 	switch asst {
 	case JunieAI:
@@ -67,7 +70,7 @@ func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summ
 func confirmRulesGeneration(
 	assistants []Assistant,
 	featurePrompt *documents.DocumentEntity,
-	repoSummary *artifacts.ArtifactRepoSummary,
+	repoSummary *integrations.RepositorySummary,
 	yes bool,
 ) error {
 	if yes {
@@ -118,7 +121,7 @@ func WriteRules(rules []Rule, path string, extension string) error {
 	for _, rule := range rules {
 		fileName := fmt.Sprintf("%s.%s", rule.Name, extension)
 		if !rule.NoPrefix {
-			fileName = fmt.Sprintf("devplan_%s", fileName)
+			fileName = fmt.Sprintf("%v%s", ruleFileNamePrefix, fileName)
 		}
 		filePath := filepath.Join(rulesDir, fileName)
 
@@ -128,8 +131,8 @@ func WriteRules(rules []Rule, path string, extension string) error {
 			content = fmt.Sprintf("%v\n\n%v", h, content)
 		}
 
-		if featID := rule.TargetID; featID != "" {
-			content = fmt.Sprintf("%v<!-- feature_id: %v -->\n\n", content, featID)
+		if t := rule.Target; t != nil && t.FeatureID != "" {
+			content = fmt.Sprintf("%v<!-- feature_id: %v -->\n\n", content, t.FeatureID)
 		}
 
 		content = fmt.Sprintf("%v%v", content, rule.Content)
@@ -146,4 +149,32 @@ func WriteRules(rules []Rule, path string, extension string) error {
 		fmt.Printf("%v %v\n", out.Check, relativeFile)
 	}
 	return nil
+}
+
+type rulePaths struct {
+	dir string
+	ext string
+}
+
+func generateCurrentFeatureRules(
+	paths rulePaths,
+	base Rule,
+	prompt *documents.DocumentEntity,
+) ([]Rule, error) {
+	target, err := prompts.GetTarget(prompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get target info for feature prompt: %w", err)
+	}
+	if target == nil || !target.Stepped {
+		rule := Rule{
+			Name:     "current_feature",
+			Content:  prompt.GetContent(),
+			Header:   base.Header,
+			Footer:   base.Footer,
+			NoPrefix: base.NoPrefix,
+			Target:   target,
+		}
+		return []Rule{rule}, nil
+	}
+	return generateSteppedRules(paths, base, prompt)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	company2 "github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 )
 
 type summariesResult struct {
@@ -15,7 +15,7 @@ type summariesResult struct {
 	err  error
 }
 
-func RepoSummary(target picker.DevTarget, repo git.RepoInfo) (*artifacts.ArtifactRepoSummary, error) {
+func RepoSummary(target picker.DevTarget, repo git.RepoInfo) (*integrations.RepositorySummary, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cl := devplan.NewClient(devplan.Config{})
@@ -37,10 +37,10 @@ func RepoSummary(target picker.DevTarget, repo git.RepoInfo) (*artifacts.Artifac
 	if err := res.err; err != nil {
 		return nil, err
 	}
-	return getMatchingSummary(repo, res.resp.GetSummaries()), nil
+	return getMatchingSummary(repo, res.resp.GetRepoSummaries()), nil
 }
 
-func getMatchingSummary(repo git.RepoInfo, summaries []*artifacts.ArtifactRepoSummary) *artifacts.ArtifactRepoSummary {
+func getMatchingSummary(repo git.RepoInfo, summaries []*integrations.RepositorySummary) *integrations.RepositorySummary {
 	for _, s := range summaries {
 		if repo.MatchesName(s.GetRepoName()) {
 			return s

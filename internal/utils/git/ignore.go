@@ -9,10 +9,13 @@ import (
 
 // UpdateIgnore creates or updates the .gitignore file
 func UpdateIgnore() error {
-	if err := updateIgnorePattenIfMissing("**/devplan_current_feature.md*"); err != nil {
+	if err := updateIgnorePattenIfMissing("**/devplan_current_feature*.md*"); err != nil {
 		return err
 	}
 	if err := updateIgnorePattenIfMissing("!.windsurf/rules/devplan_*.md"); err != nil {
+		return err
+	}
+	if err := updateIgnorePattenIfMissing("!.windsurf/rules/devplan_current_feature*.md"); err != nil {
 		return err
 	}
 	return nil

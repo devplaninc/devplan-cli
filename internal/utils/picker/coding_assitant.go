@@ -10,16 +10,26 @@ func GetTargetPrompt(target DevTarget, docs []*documents.DocumentEntity) (*docum
 	if codeAssist == nil {
 		return nil, nil
 	}
+	featureID := target.SpecificFeature.GetId()
 	for _, d := range docs {
 		if d.GetParentId() != codeAssist.GetId() {
 			continue
 		}
-		targetID, err := prompts.GetTargetID(d)
+		t, err := prompts.GetTarget(d)
 		if err != nil {
 			return nil, err
 		}
-		if (target.SingleShot && targetID == prompts.CombinedFeatureID) ||
-			(!target.SingleShot && targetID == target.SpecificFeature.GetId()) {
+		if t == nil {
+			continue
+		}
+
+		if target.SingleShot && t.Combined {
+			return d, nil
+		}
+		if t.FeatureID == "" {
+			continue
+		}
+		if t.FeatureID == featureID && t.Stepped == target.Steps {
 			return d, nil
 		}
 	}

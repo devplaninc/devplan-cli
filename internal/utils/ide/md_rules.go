@@ -3,9 +3,8 @@ package ide
 import (
 	"bytes"
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"strings"
 	"text/template"
 )
@@ -58,7 +57,7 @@ func replacePaths(str string, rulesPath string, ext string) string {
 	return result
 }
 
-func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{NoPrefix: true, Name: "guidelines",
 			Content: replacePaths(devFlowRule, rulesPath, "md"),
@@ -68,17 +67,16 @@ func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, re
 		{Name: "insights", Content: insightsRule},
 	}
 	if featurePrompt != nil {
-		targetID, err := prompts.GetTargetID(featurePrompt)
+		cfRules, err := generateCurrentFeatureRules(
+			rulePaths{dir: rulesPath, ext: "md"},
+			Rule{},
+			featurePrompt)
 		if err != nil {
-			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
+			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}
-		rules = append(rules, Rule{
-			Name:     "current_feature",
-			Content:  featurePrompt.GetContent(),
-			TargetID: targetID,
-		})
+		rules = append(rules, cfRules...)
 	}
-	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
+	if summary := repoSummary.GetSummary(); summary != "" {
 		rules = append(rules, Rule{Name: "repo_overview", Content: summary})
 	}
 	return WriteRules(rules, rulesPath, "md")

@@ -5,8 +5,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const CombinedFeatureID = "combined-prompt"
-
 func GetDocDetails(promptDoc *documents.DocumentEntity) (*documents.CustomDocumentDetails, error) {
 	if promptDoc.GetDetails() == "" {
 		return nil, nil
@@ -16,17 +14,27 @@ func GetDocDetails(promptDoc *documents.DocumentEntity) (*documents.CustomDocume
 	return details, u.Unmarshal([]byte(promptDoc.GetDetails()), details)
 }
 
-func GetTargetID(promptDoc *documents.DocumentEntity) (string, error) {
+type Target struct {
+	FeatureID string
+	Stepped   bool
+	Combined  bool
+}
+
+func GetTarget(promptDoc *documents.DocumentEntity) (*Target, error) {
 	details, err := GetDocDetails(promptDoc)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	featureID := details.GetExtraPromptParams()["feature_id"]
+	steppedFeatureID := details.GetExtraPromptParams()["stepped_feature_id"]
 	if featureID != "" {
-		return featureID, nil
+		return &Target{FeatureID: featureID}, nil
+	}
+	if steppedFeatureID != "" {
+		return &Target{FeatureID: steppedFeatureID, Stepped: true}, nil
 	}
 	if details.GetExtraPromptParams()["combined"] == "true" {
-		return CombinedFeatureID, nil
+		return &Target{Combined: true}, nil
 	}
-	return "", nil
+	return nil, nil
 }

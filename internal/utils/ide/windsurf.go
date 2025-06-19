@@ -2,13 +2,12 @@ package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/artifacts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"path/filepath"
 )
 
-func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSummary *artifacts.ArtifactRepoSummary) error {
+func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
 	rulesPath := filepath.Join(".windsurf", "rules")
 	rules := []Rule{
 		{Name: "flow", Content: replacePaths(devFlowRule, rulesPath, "md"),
@@ -25,18 +24,17 @@ func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repo
 	}
 
 	if featurePrompt != nil {
-		targetID, err := prompts.GetTargetID(featurePrompt)
+		cfRules, err := generateCurrentFeatureRules(
+			rulePaths{dir: filepath.Join(".windsurf", "rules"), ext: "md"},
+			Rule{
+				Header: getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
+			}, featurePrompt)
 		if err != nil {
-			return fmt.Errorf("failed to get feature ID for feature prompt: %w", err)
+			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}
-		rules = append(rules, Rule{
-			Name:     "current_feature",
-			Content:  featurePrompt.GetContent(),
-			Header:   getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
-			TargetID: targetID,
-		})
+		rules = append(rules, cfRules...)
 	}
-	if summary := repoSummary.GetSummary().GetContent(); summary != "" {
+	if summary := repoSummary.GetSummary(); summary != "" {
 		rules = append(rules, Rule{Name: "repo_overview",
 			Content: summary,
 			Header: getWindsurfRuleHeader(WindsurfHeader{

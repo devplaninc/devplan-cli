@@ -25,6 +25,7 @@ type TargetCmd struct {
 	IDEName    string
 	Yes        bool
 	SingleShot bool
+	Steps      bool
 }
 
 func (c *TargetCmd) PreRun(_ *cobra.Command, _ []string) error {
@@ -35,6 +36,9 @@ func (c *TargetCmd) PreRun(_ *cobra.Command, _ []string) error {
 	}
 	if c.SingleShot && c.FeatureID != "" {
 		return fmt.Errorf("-s (--single-shot) cannot be used with -f (--feature)")
+	}
+	if c.Steps && c.FeatureID == "" {
+		return fmt.Errorf("--steps must be used together with -f (--feature)")
 	}
 	return nil
 }
@@ -52,12 +56,14 @@ func (c *TargetCmd) Prepare(cmd *cobra.Command) {
 	cmd.Flags().Int32VarP(&c.CompanyID, "company", "c", -1, "Company id to focus on")
 	cmd.Flags().BoolVarP(&c.Yes, "yes", "y", false, "Execute without confirmation")
 	cmd.Flags().BoolVarP(&c.SingleShot, "single-shot", "s", false, "Use a single-shot prompt for all features (cannot be used with -f)")
+	cmd.Flags().BoolVar(&c.Steps, "steps", false, "Use step-by-step prompts for a feature")
 }
 
 type DevTarget struct {
 	SpecificFeature *documents.DocumentEntity
 	SingleShot      bool
 	ProjectWithDocs *documents.ProjectWithDocs
+	Steps           bool
 }
 
 func (d DevTarget) GetName() string {
@@ -101,6 +107,7 @@ func Target(cmd *TargetCmd) (DevTarget, error) {
 			return DevTarget{}, err
 		}
 		result.SpecificFeature = feature
+		result.Steps = cmd.Steps
 	}
 
 	return result, nil
