@@ -59,7 +59,7 @@ func generateSteppedRules(
 		st.Steps = append(st.Steps, newStep)
 	}
 	var rules []Rule
-	stepsRule, err := ruleFromTemplate("current_feature", base, stepsDescription, st)
+	stepsRule, err := ruleFromTemplate(ruleFileNameCurrentFeaturePrefix, base, stepsDescription, st)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate overall steps rule: %w", err)
 	}

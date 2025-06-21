@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
-	"path/filepath"
 )
 
-func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
-	rulesPath := filepath.Join(".windsurf", "rules")
+func createWindsurfRulesFromPrompt(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{Name: "flow", Content: replacePaths(devFlowRule, rulesPath, "md"),
 			Header: getWindsurfRuleHeader(WindsurfHeader{Description: devFlowRuleDescription}),
 			Footer: allOtherRulesSuffix(".", "md"),
 		},
 		{Name: "rules", Content: rulesRule, Header: getWindsurfRuleHeader(WindsurfHeader{
-			Description: generalRuleDescription, Globs: ".windsurf/rules/*.md", Trigger: "glob",
+			Description: generalRuleDescription, Globs: fmt.Sprintf("%v/*.md", rulesPath), Trigger: "glob",
 		})},
 		{Name: "insights", Content: insightsRule, Header: getWindsurfRuleHeader(WindsurfHeader{
 			Description: insightsRuleDescription,
@@ -25,7 +23,7 @@ func createWindsurfRulesFromPrompt(featurePrompt *documents.DocumentEntity, repo
 
 	if featurePrompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
-			rulePaths{dir: filepath.Join(".windsurf", "rules"), ext: "md"},
+			rulePaths{dir: rulesPath, ext: "md"},
 			Rule{
 				Header: getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
 			}, featurePrompt)

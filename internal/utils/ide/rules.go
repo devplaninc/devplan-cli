@@ -10,11 +10,13 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
 
 const ruleFileNamePrefix = "devplan_"
+const ruleFileNameCurrentFeaturePrefix = "current_feature"
 
 type Rule struct {
 	NoPrefix bool
@@ -44,15 +46,31 @@ func WriteMultiIDE(
 	return nil
 }
 
-func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *integrations.RepositorySummary) error {
-	var err error
+func GetRulesPath(asst Assistant) (string, error) {
 	switch asst {
 	case JunieAI:
-		err = createJunieRules(featPrompt, summary)
+		return ".junie", nil
 	case CursorAI:
-		err = createCursorRulesFromPrompt(featPrompt, summary)
+		return path.Join(".cursor", "rules"), nil
 	case WindsurfAI:
-		err = createWindsurfRulesFromPrompt(featPrompt, summary)
+		return path.Join(".windsurf", "rules"), nil
+	default:
+		return "", fmt.Errorf("unknown assistant: %v", asst)
+	}
+}
+
+func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *integrations.RepositorySummary) error {
+	rulesPath, err := GetRulesPath(asst)
+	if err != nil {
+		return err
+	}
+	switch asst {
+	case JunieAI:
+		err = createMdRules(rulesPath, featPrompt, summary)
+	case CursorAI:
+		err = createCursorRulesFromPrompt(rulesPath, featPrompt, summary)
+	case WindsurfAI:
+		err = createWindsurfRulesFromPrompt(rulesPath, featPrompt, summary)
 	default:
 		err = fmt.Errorf("unknown assistant: %v", asst)
 	}
@@ -167,7 +185,7 @@ func generateCurrentFeatureRules(
 	}
 	if target == nil || !target.Stepped {
 		rule := Rule{
-			Name:     "current_feature",
+			Name:     ruleFileNameCurrentFeaturePrefix,
 			Content:  prompt.GetContent(),
 			Header:   base.Header,
 			Footer:   base.Footer,
