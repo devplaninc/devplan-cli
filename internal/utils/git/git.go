@@ -138,7 +138,7 @@ func Clone(opt CloneOptions) error {
 }
 
 func GetRoot() (string, error) {
-	repo, err := git.PlainOpen(".")
+	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +150,7 @@ func GetRoot() (string, error) {
 }
 
 func getRepoURLs(path string) ([]string, error) {
-	repo, err := git.PlainOpen(path)
+	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		return nil, err
 	}
