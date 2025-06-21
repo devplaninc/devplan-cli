@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
-	"path/filepath"
 )
 
-func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
+func createCursorRulesFromPrompt(rulesPath string, prompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{Name: "flow",
-			Content: replacePaths(devFlowRule, ".cursor/rules", "mdc"),
+			Content: replacePaths(devFlowRule, rulesPath, "mdc"),
 			Header:  getCursorRuleHeader(CursorHeader{Description: devFlowRuleDescription}),
-			Footer:  allOtherRulesSuffix(".cursor/rules", "mdc"),
+			Footer:  allOtherRulesSuffix(rulesPath, "mdc"),
 		},
 		{Name: "rules", Content: rulesRule, Header: getCursorRuleHeader(CursorHeader{
-			Description: generalRuleDescription, Globs: ".cursor/rules/*.mdc",
+			Description: generalRuleDescription, Globs: fmt.Sprintf("%v/*.mdc", rulesPath),
 		})},
 		{Name: "insights", Content: insightsRule, Header: getCursorRuleHeader(CursorHeader{
 			Description: insightsRuleDescription,
@@ -24,7 +23,7 @@ func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *
 
 	if prompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
-			rulePaths{dir: ".cursor/rules", ext: "mdc"},
+			rulePaths{dir: rulesPath, ext: "mdc"},
 			Rule{
 				Header: getCursorRuleHeader(CursorHeader{Description: currentFeatRuleDescription}),
 			},
@@ -40,7 +39,7 @@ func createCursorRulesFromPrompt(prompt *documents.DocumentEntity, repoSummary *
 		)})
 	}
 
-	return WriteRules(rules, filepath.Join(".cursor", "rules"), "mdc")
+	return WriteRules(rules, rulesPath, "mdc")
 }
 
 type CursorHeader struct {

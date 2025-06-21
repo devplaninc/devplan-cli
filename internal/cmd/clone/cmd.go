@@ -63,6 +63,10 @@ func runClone(targetPicker *picker.TargetCmd, repoName string) {
 	prompt, err := picker.GetTargetPrompt(target, project.GetDocs())
 	check(err)
 
+	if err := ide.CleanupCurrentFeaturePrompts(assistants); err != nil {
+		out.Pfailf("Failed to clean up prompt files: %v\n", err)
+	}
+
 	err = os.Chdir(repoPath)
 	check(err)
 	check(ide.WriteMultiIDE(assistants, prompt, summary, targetPicker.Yes))

@@ -42,7 +42,13 @@ func runFocus(targetPicker *picker.TargetCmd) {
 	check(err)
 	featPrompt, err := picker.GetTargetPrompt(target, project.GetDocs())
 	check(err)
+
+	if err := ide.CleanupCurrentFeaturePrompts(ides); err != nil {
+		out.Pfailf("Failed to clean up prompt files: %v\n", err)
+	}
+
 	check(ide.WriteMultiIDE(ides, featPrompt, summary, targetPicker.Yes))
+
 	fmt.Println("\nNow you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
 }
 
