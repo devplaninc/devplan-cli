@@ -20,6 +20,7 @@ const (
 	AppCode  IDE = "appcode"
 	Windsurf IDE = "windsurf"
 	Cursor   IDE = "cursor"
+	Claude   IDE = "claude"
 )
 
 type Assistant string
@@ -28,12 +29,14 @@ const (
 	CursorAI   Assistant = "cursor"
 	JunieAI    Assistant = "junie"
 	WindsurfAI Assistant = "windsurf"
+	ClaudeAI   Assistant = "claude"
 )
 
 var pathMap = map[Assistant]string{
 	CursorAI:   ".cursor",
 	JunieAI:    ".junie",
 	WindsurfAI: ".windsurf",
+	ClaudeAI:   ".",
 }
 
 func GetJetbrainsIDEs() []IDE {
@@ -52,7 +55,7 @@ func GetJetbrainsIDEs() []IDE {
 }
 
 func GetKnown() []IDE {
-	return append(GetJetbrainsIDEs(), Cursor, Windsurf)
+	return append(GetJetbrainsIDEs(), Cursor, Windsurf, Claude)
 }
 
 func GetAssistant(ide IDE) (Assistant, error) {
@@ -64,10 +67,12 @@ func GetAssistant(ide IDE) (Assistant, error) {
 		return CursorAI, nil
 	case Windsurf:
 		return WindsurfAI, nil
+	case Claude:
+		return ClaudeAI, nil
 	}
 	return "", errors.Errorf("unexpected IDE: %s", ide)
 }
 
 func GetAssistants() []Assistant {
-	return []Assistant{CursorAI, JunieAI, WindsurfAI}
+	return []Assistant{ClaudeAI, CursorAI, JunieAI, WindsurfAI}
 }

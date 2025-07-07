@@ -57,27 +57,53 @@ func replacePaths(str string, rulesPath string, ext string) string {
 	return result
 }
 
-func createMdRules(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
+type mdRulesParams struct {
+	rulesPath     string
+	featurePrompt *documents.DocumentEntity
+	repoSummary   *integrations.RepositorySummary
+	devFlowName   string
+	devFlowPath   string
+	backUpDevFlow bool
+}
+
+func createMdRules(p mdRulesParams) error {
+	devFlowName := p.devFlowName
+	if devFlowName == "" {
+		devFlowName = "guidelines"
+	}
+	devFlowPath := p.devFlowPath
+	if devFlowPath == "" {
+		devFlowPath = p.rulesPath
+	}
+	guidelinesRule := Rule{
+		NoPrefix:    true,
+		Name:        devFlowName,
+		Content:     replacePaths(devFlowRule, p.rulesPath, "md"),
+		Footer:      allOtherRulesSuffix(p.rulesPath, "md"),
+		NeedsBackup: p.backUpDevFlow,
+	}
 	rules := []Rule{
-		{NoPrefix: true, Name: "guidelines",
-			Content: replacePaths(devFlowRule, rulesPath, "md"),
-			Footer:  allOtherRulesSuffix(".", "md"),
-		},
 		{Name: "rules", Content: rulesRule},
 		{Name: "insights", Content: insightsRule},
 	}
-	if featurePrompt != nil {
+	if p.featurePrompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
-			rulePaths{dir: rulesPath, ext: "md"},
+			rulePaths{dir: p.rulesPath, ext: "md"},
 			Rule{},
-			featurePrompt)
+			p.featurePrompt)
 		if err != nil {
 			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}
 		rules = append(rules, cfRules...)
 	}
-	if summary := repoSummary.GetSummary(); summary != "" {
+	if summary := p.repoSummary.GetSummary(); summary != "" {
 		rules = append(rules, Rule{Name: "repo_overview", Content: summary})
 	}
-	return WriteRules(rules, rulesPath, "md")
+	if err := WriteRules(rules, p.rulesPath, "md"); err != nil {
+		return err
+	}
+	if err := WriteRules([]Rule{guidelinesRule}, devFlowPath, "md"); err != nil {
+		return err
+	}
+	return nil
 }

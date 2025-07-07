@@ -9,6 +9,7 @@ import (
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,12 +20,13 @@ const ruleFileNamePrefix = "devplan_"
 const ruleFileNameCurrentFeaturePrefix = "current_feature"
 
 type Rule struct {
-	NoPrefix bool
-	Name     string
-	Content  string
-	Header   string
-	Footer   string
-	Target   *prompts.Target
+	NoPrefix    bool
+	Name        string
+	Content     string
+	Header      string
+	Footer      string
+	Target      *prompts.Target
+	NeedsBackup bool
 }
 
 func WriteMultiIDE(
@@ -54,6 +56,8 @@ func GetRulesPath(asst Assistant) (string, error) {
 		return path.Join(".cursor", "rules"), nil
 	case WindsurfAI:
 		return path.Join(".windsurf", "rules"), nil
+	case ClaudeAI:
+		return ".claude", nil
 	default:
 		return "", fmt.Errorf("unknown assistant: %v", asst)
 	}
@@ -64,13 +68,19 @@ func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summ
 	if err != nil {
 		return err
 	}
+	params := mdRulesParams{rulesPath: rulesPath, featurePrompt: featPrompt, repoSummary: summary}
 	switch asst {
 	case JunieAI:
-		err = createMdRules(rulesPath, featPrompt, summary)
+		err = createMdRules(params)
 	case CursorAI:
-		err = createCursorRulesFromPrompt(rulesPath, featPrompt, summary)
+		err = createCursorRulesFromPrompt(params.rulesPath, params.featurePrompt, params.repoSummary)
 	case WindsurfAI:
-		err = createWindsurfRulesFromPrompt(rulesPath, featPrompt, summary)
+		err = createWindsurfRulesFromPrompt(params.rulesPath, params.featurePrompt, params.repoSummary)
+	case ClaudeAI:
+		params.devFlowPath = "."
+		params.devFlowName = "CLAUDE"
+		params.backUpDevFlow = true
+		err = createMdRules(params)
 	default:
 		err = fmt.Errorf("unknown assistant: %v", asst)
 	}
@@ -158,6 +168,11 @@ func WriteRules(rules []Rule, path string, extension string) error {
 		if f := rule.Footer; f != "" {
 			content = fmt.Sprintf("%v\n%v", content, f)
 		}
+		if rule.NeedsBackup {
+			if err := createBackup(filePath); err != nil {
+				return fmt.Errorf("failed to create backup for rule file %s: %w", rule.Name, err)
+			}
+		}
 
 		err := os.WriteFile(filePath, []byte(content), 0644)
 		if err != nil {
@@ -166,6 +181,40 @@ func WriteRules(rules []Rule, path string, extension string) error {
 		relativeFile := filepath.Join(path, fileName)
 		fmt.Printf("%v %v\n", out.Check, relativeFile)
 	}
+	return nil
+}
+
+func createBackup(filePath string) error {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to check file existence: %w", err)
+	}
+
+	backupFilePath := filePath + ".bak"
+
+	srcFile, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer func(srcFile *os.File) {
+		_ = srcFile.Close()
+	}(srcFile)
+
+	// Create the backup file
+	dstFile, err := os.Create(backupFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create backup file: %w", err)
+	}
+	defer func(dstFile *os.File) {
+		_ = dstFile.Close()
+	}(dstFile)
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file contents: %w", err)
+	}
+	fmt.Printf("Backup created: %s\n", backupFilePath)
 	return nil
 }
 
