@@ -13,12 +13,6 @@ func createCursorRulesFromPrompt(rulesPath string, prompt *documents.DocumentEnt
 			Header:  getCursorRuleHeader(CursorHeader{Description: devFlowRuleDescription}),
 			Footer:  allOtherRulesSuffix(rulesPath, "mdc"),
 		},
-		{Name: "rules", Content: rulesRule, Header: getCursorRuleHeader(CursorHeader{
-			Description: generalRuleDescription, Globs: fmt.Sprintf("%v/*.mdc", rulesPath),
-		})},
-		{Name: "insights", Content: insightsRule, Header: getCursorRuleHeader(CursorHeader{
-			Description: insightsRuleDescription,
-		})},
 	}
 
 	if prompt != nil {

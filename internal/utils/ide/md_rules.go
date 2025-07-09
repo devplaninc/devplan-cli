@@ -12,22 +12,16 @@ import (
 func allOtherRulesSuffix(rulesPath string, ext string) string {
 	const tmpl = `Also refer to the following files for the details when needed:
 
-- [Insights]({{.Path}}/devplan_insights.{{.Ext}}) - {{.Insights}}
-- [Rules]({{.Path}}/devplan_rules.{{.Ext}}) - {{.Rules}}
 - [Repo Overview]({{.Path}}/devplan_repo_overview.{{.Ext}}) - {{.Overview}} (if present)
 - [Current Feature]({{.Path}}/devplan_current_feature.{{.Ext}}) - {{.Feature}}. Always review current feature if it is present.
 `
 	data := struct {
 		Path     string
-		Insights string
-		Rules    string
 		Overview string
 		Feature  string
 		Ext      string
 	}{
 		Path:     rulesPath,
-		Insights: insightsRuleDescription,
-		Rules:    generalRuleDescription,
 		Overview: repoOverviewRuleDescription,
 		Feature:  currentFeatRuleDescription,
 		Ext:      ext,
@@ -82,10 +76,7 @@ func createMdRules(p mdRulesParams) error {
 		Footer:      allOtherRulesSuffix(p.rulesPath, "md"),
 		NeedsBackup: p.backUpDevFlow,
 	}
-	rules := []Rule{
-		{Name: "rules", Content: rulesRule},
-		{Name: "insights", Content: insightsRule},
-	}
+	var rules []Rule
 	if p.featurePrompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
 			rulePaths{dir: p.rulesPath, ext: "md"},

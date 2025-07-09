@@ -12,13 +12,6 @@ func createWindsurfRulesFromPrompt(rulesPath string, featurePrompt *documents.Do
 			Header: getWindsurfRuleHeader(WindsurfHeader{Description: devFlowRuleDescription}),
 			Footer: allOtherRulesSuffix(".", "md"),
 		},
-		{Name: "rules", Content: rulesRule, Header: getWindsurfRuleHeader(WindsurfHeader{
-			Description: generalRuleDescription, Globs: fmt.Sprintf("%v/*.md", rulesPath), Trigger: "glob",
-		})},
-		{Name: "insights", Content: insightsRule, Header: getWindsurfRuleHeader(WindsurfHeader{
-			Description: insightsRuleDescription,
-			Trigger:     "model_decision",
-		})},
 	}
 
 	if featurePrompt != nil {
