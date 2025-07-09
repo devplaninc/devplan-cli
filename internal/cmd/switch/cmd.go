@@ -94,12 +94,14 @@ func runSwitch(ideName string) {
 
 func launchSelectedIDE(ideName ide.IDE, repoPath string) {
 	fmt.Printf("Opening %s in %s...\n", out.H(repoPath), out.Hf("%v", ideName))
-	err := ide.LaunchIDE(ideName, repoPath)
+	launched, err := ide.LaunchIDE(ideName, repoPath)
 	if err != nil {
 		fmt.Println(out.Failf("Failed to launch IDE: %v", err))
 		os.Exit(1)
 	}
-	fmt.Println(out.Successf("Successfully opened %s in %s", repoPath, ideName))
+	if launched {
+		fmt.Println(out.Successf("Successfully opened %s in %s", repoPath, ideName))
+	}
 }
 
 func getIDENames(ides map[ide.IDE]string) []ide.IDE {

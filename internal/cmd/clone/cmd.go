@@ -114,10 +114,13 @@ func prepareRepository(
 }
 
 func launch(ideName ide.IDE, repoPath string) {
-	check(ide.LaunchIDE(ideName, repoPath))
-	out.Successf(
-		"%v launched at the repository. You can ask AI assitant there to execute current feature. Happy coding!",
-		ideName)
+	launched, err := ide.LaunchIDE(ideName, repoPath)
+	check(err)
+	if launched {
+		out.Successf(
+			"%v launched at the repository. You can ask AI assitant there to execute current feature. Happy coding!",
+			ideName)
+	}
 }
 
 func checkIfURL(repoName string) (git.RepoInfo, bool, error) {

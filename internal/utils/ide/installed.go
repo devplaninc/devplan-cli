@@ -2,12 +2,25 @@ package ide
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 )
 
 // DetectInstalledIDEs returns a map of installed IDEs and their executable paths
 func DetectInstalledIDEs() (map[IDE]string, error) {
+	detected, err := detectIDEs()
+	if err != nil {
+		return nil, err
+	}
+	if claudePath, err := exec.LookPath("claude"); err == nil {
+		detected[Claude] = claudePath
+	}
+
+	return detected, nil
+}
+
+func detectIDEs() (map[IDE]string, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		return detectMacOSIDEs()
