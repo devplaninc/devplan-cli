@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
@@ -56,12 +57,11 @@ func runSwitch(ideName string) {
 	}
 	selectedFeature := features[idx]
 
-	repoPath := selectedFeature.FullPath
+	featurePath := selectedFeature.FullPath
 
-	// If IDE name is provided, use it
 	if ideName != "" {
 		ideV := ide.IDE(strings.ToLower(ideName))
-		launchSelectedIDE(ideV, repoPath)
+		launchSelectedIDE(ideV, featurePath)
 		return
 	}
 
@@ -89,18 +89,67 @@ func runSwitch(ideName string) {
 	}
 	selectedIDEName := ideNames[ideIdx]
 
-	launchSelectedIDE(selectedIDEName, repoPath)
+	launchSelectedIDE(selectedIDEName, featurePath)
 }
 
-func launchSelectedIDE(ideName ide.IDE, repoPath string) {
-	fmt.Printf("Opening %s in %s...\n", out.H(repoPath), out.Hf("%v", ideName))
-	launched, err := ide.LaunchIDE(ideName, repoPath)
+func launchSelectedIDE(ideName ide.IDE, featurePath string) {
+	// Check for subfolders in the feature path
+	pathToOpen, err := getPathToOpen(featurePath)
+	if err != nil {
+		fmt.Println(out.Failf("%v", err))
+		os.Exit(1)
+	}
+
+	fmt.Printf("Opening %s in %s...\n", out.H(pathToOpen), out.Hf("%v", ideName))
+	launched, err := ide.LaunchIDE(ideName, pathToOpen)
 	if err != nil {
 		fmt.Println(out.Failf("Failed to launch IDE: %v", err))
 		os.Exit(1)
 	}
 	if launched {
-		fmt.Println(out.Successf("Successfully opened %s in %s", repoPath, ideName))
+		fmt.Println(out.Successf("Successfully opened %s in %s", pathToOpen, ideName))
+	}
+}
+
+// getPathToOpen checks for subfolders in the given path and returns the path to open in the IDE.
+// If there are multiple subfolders, it asks the user to select one.
+// If there is exactly one subfolder, it returns that subfolder path.
+// If there are no subfolders, it returns an error.
+func getPathToOpen(dirPath string) (string, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read directory %s: %v", dirPath, err)
+	}
+
+	// Filter for directories only
+	var subfolders []os.DirEntry
+	for _, entry := range entries {
+		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			subfolders = append(subfolders, entry)
+		}
+	}
+
+	switch len(subfolders) {
+	case 0:
+		return "", fmt.Errorf("no subfolders found in %s", dirPath)
+	case 1:
+		return filepath.Join(dirPath, subfolders[0].Name()), nil
+	default:
+		var folderNames []string
+		for _, folder := range subfolders {
+			folderNames = append(folderNames, folder.Name())
+		}
+
+		prompt := promptui.Select{
+			Label: "Select a folder to open",
+			Items: folderNames,
+		}
+		idx, _, err := prompt.Run()
+		if err != nil {
+			return "", fmt.Errorf("subfolder selection failed: %v", err)
+		}
+
+		return filepath.Join(dirPath, subfolders[idx].Name()), nil
 	}
 }
 
