@@ -1,9 +1,12 @@
 name: Build and Release
+run-name: Build and Release (${{ github.event.inputs.version }})
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (without v prefix, e.g. 1.2.3)'
+        required: true
 
 jobs:
   build:
@@ -13,10 +16,30 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ github.event.inputs.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ github.event.inputs.version }} already exists"
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag v${{ github.event.inputs.version }} does not exist"
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag if it doesn't exist
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
 
       - name: Configure Git URL
         run: git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
@@ -31,8 +54,8 @@ jobs:
 
       - name: Build for multiple platforms
         run: |
-          # Get version from tag (without 'v' prefix)
-          export VERSION=${GITHUB_REF#refs/tags/v}
+          # Use version from workflow input
+          export VERSION=${{ github.event.inputs.version }}
           echo "CLI_VERSION=${VERSION}" >> $GITHUB_ENV
           export COMMIT_HASH=$(git rev-parse HEAD)
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -55,8 +78,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release v${{ github.event.inputs.version }}
           draft: false
           prerelease: false
 
@@ -69,7 +92,7 @@ jobs:
           asset_path: ./build/checksums.txt
           asset_name: checksums.txt
           asset_content_type: text/plain
-          
+
       - name: Upload Linux amd64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -79,7 +102,7 @@ jobs:
           asset_path: ./build/devplan-linux-amd64.tar.gz
           asset_name: devplan-linux-amd64.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload Linux arm64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -89,7 +112,7 @@ jobs:
           asset_path: ./build/devplan-linux-arm64.tar.gz
           asset_name: devplan-linux-arm64.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload macOS amd64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -99,7 +122,7 @@ jobs:
           asset_path: ./build/devplan-darwin-amd64.tar.gz
           asset_name: devplan-darwin-amd64.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload macOS arm64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -109,7 +132,7 @@ jobs:
           asset_path: ./build/devplan-darwin-arm64.tar.gz
           asset_name: devplan-darwin-arm64.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload Windows amd64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -119,7 +142,7 @@ jobs:
           asset_path: ./build/devplan-windows-amd64.zip
           asset_name: devplan-windows-amd64.zip
           asset_content_type: application/zip
-          
+
       - name: Upload Windows arm64 (auto-update enabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -129,7 +152,7 @@ jobs:
           asset_path: ./build/devplan-windows-arm64.zip
           asset_name: devplan-windows-arm64.zip
           asset_content_type: application/zip
-          
+
       - name: Upload Linux amd64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -139,7 +162,7 @@ jobs:
           asset_path: ./build/devplan-linux-amd64-noautoupdate.tar.gz
           asset_name: devplan-linux-amd64-noautoupdate.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload Linux arm64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -149,7 +172,7 @@ jobs:
           asset_path: ./build/devplan-linux-arm64-noautoupdate.tar.gz
           asset_name: devplan-linux-arm64-noautoupdate.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload macOS amd64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -159,7 +182,7 @@ jobs:
           asset_path: ./build/devplan-darwin-amd64-noautoupdate.tar.gz
           asset_name: devplan-darwin-amd64-noautoupdate.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload macOS arm64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -169,7 +192,7 @@ jobs:
           asset_path: ./build/devplan-darwin-arm64-noautoupdate.tar.gz
           asset_name: devplan-darwin-arm64-noautoupdate.tar.gz
           asset_content_type: application/gzip
-          
+
       - name: Upload Windows amd64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -179,7 +202,7 @@ jobs:
           asset_path: ./build/devplan-windows-amd64-noautoupdate.zip
           asset_name: devplan-windows-amd64-noautoupdate.zip
           asset_content_type: application/zip
-          
+
       - name: Upload Windows arm64 (auto-update disabled)
         uses: actions/upload-release-asset@v1
         env:
@@ -189,7 +212,7 @@ jobs:
           asset_path: ./build/devplan-windows-arm64-noautoupdate.zip
           asset_name: devplan-windows-arm64-noautoupdate.zip
           asset_content_type: application/zip
-          
+
       - name: Validate Release Assets
         run: |
           echo "Validating that all required assets are present..."
@@ -207,29 +230,29 @@ jobs:
             "devplan-windows-amd64-noautoupdate.zip"
             "devplan-windows-arm64-noautoupdate.zip"
           )
-          
+
           missing_assets=()
           for asset in "${required_assets[@]}"; do
             if [[ ! -f "./build/${asset}" ]]; then
               missing_assets+=("${asset}")
             fi
           done
-          
+
           if [[ ${#missing_assets[@]} -gt 0 ]]; then
             echo "ERROR: Missing required assets:"
             printf '%s\n' "${missing_assets[@]}"
             exit 1
           fi
-          
+
           echo "All required assets are present!"
-          
+
       - name: Verify Auto-Update is Disabled in No-Auto-Update Binaries
         run: |
           echo "Verifying that auto-update is disabled in no-auto-update binaries..."
-          
+
           # Extract and test a few binaries to verify auto-update is disabled
           cd build
-          
+
           # Test Linux amd64 no-auto-update binary
           tar -xzf devplan-linux-amd64-noautoupdate.tar.gz
           if ./devplan-linux-amd64-noautoupdate version | grep -q "Auto-update: disabled"; then
@@ -238,7 +261,7 @@ jobs:
             echo "✗ Linux amd64 no-auto-update binary failed verification"
             exit 1
           fi
-          
+
           # Test macOS arm64 no-auto-update binary (if on macOS)
           if [[ "$RUNNER_OS" == "macOS" ]]; then
             tar -xzf devplan-darwin-arm64-noautoupdate.tar.gz
@@ -249,5 +272,5 @@ jobs:
               exit 1
             fi
           fi
-          
+
           echo "Auto-update disabled verification completed!"
