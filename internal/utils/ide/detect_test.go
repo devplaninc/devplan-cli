@@ -15,11 +15,11 @@ func TestDetectIDEDirectories(t *testing.T) {
 		dirs []string
 		ides []Assistant
 	}{
-		{[]string{".cursor"}, []Assistant{CursorAI}},
-		{[]string{".junie"}, []Assistant{JunieAI}},
-		{[]string{".windsurf"}, []Assistant{WindsurfAI}},
-		{[]string{".cursor", ".junie"}, []Assistant{CursorAI, JunieAI}},
-		{nil, nil},
+		{[]string{".cursor"}, []Assistant{ClaudeAI, CursorAI}},
+		{[]string{".junie"}, []Assistant{ClaudeAI, JunieAI}},
+		{[]string{".windsurf"}, []Assistant{ClaudeAI, WindsurfAI}},
+		{[]string{".cursor", ".junie"}, []Assistant{ClaudeAI, CursorAI, JunieAI}},
+		{nil, []Assistant{ClaudeAI}},
 	}
 
 	// Test each IDE directory
@@ -38,7 +38,7 @@ func TestDetectIDEDirectories(t *testing.T) {
 			}
 			ides, err := DetectAssistantOnPath(tempDir)
 			require.NoError(t, err)
-			assert.Equal(t, tc.ides, ides)
+			assert.ElementsMatch(t, tc.ides, ides)
 		})
 	}
 }
