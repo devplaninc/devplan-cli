@@ -37,6 +37,11 @@ func init() {
 }
 
 func runUpdate(_ *cobra.Command, _ []string) {
+	if version.IsAutoUpdateDisabled() {
+		fmt.Print(out.Failf("Auto-update is disabled in this build. Please update via your package manager (e.g., Homebrew) or download the latest version from the GitHub releases page.\n"))
+		os.Exit(1)
+	}
+
 	client := &updater.Client{}
 
 	if toVersion != "" {

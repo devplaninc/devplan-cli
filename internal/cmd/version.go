@@ -27,6 +27,11 @@ func init() {
 
 func runVersion(_ *cobra.Command, _ []string) {
 	if showLatest {
+		if version.IsAutoUpdateDisabled() {
+			fmt.Print(out.Failf("Auto-update is disabled in this build. Cannot check for latest version.\n"))
+			os.Exit(1)
+		}
+
 		client := &updater.Client{}
 		ver, err := client.GetVersionConfig()
 		if err != nil {
@@ -37,8 +42,15 @@ func runVersion(_ *cobra.Command, _ []string) {
 		fmt.Printf("Latest available version: %s\n", out.H(ver.GetProductionVersion()))
 		return
 	}
+
+	autoUpdateStatus := "enabled"
+	if version.IsAutoUpdateDisabled() {
+		autoUpdateStatus = "disabled"
+	}
+
 	fmt.Printf(`Version: %v
 Commit: %v
 Build Date: %v
-`, out.H(version.GetVersion()), out.H(version.GetCommitHash()), out.H(version.GetBuildDate()))
+Auto-update: %v
+`, out.H(version.GetVersion()), out.H(version.GetCommitHash()), out.H(version.GetBuildDate()), out.H(autoUpdateStatus))
 }
