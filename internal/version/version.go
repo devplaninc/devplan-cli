@@ -10,6 +10,9 @@ var (
 
 	// BuildDate is the date when the binary was built
 	BuildDate = "unknown"
+
+	// DisableAutoUpdate is a flag to disable auto-update functionality
+	DisableAutoUpdate = "false"
 )
 
 // GetVersion returns the current version of the CLI
@@ -25,4 +28,9 @@ func GetCommitHash() string {
 // GetBuildDate returns the date when the binary was built
 func GetBuildDate() string {
 	return BuildDate
+}
+
+// IsAutoUpdateDisabled returns true if auto-update functionality is disabled
+func IsAutoUpdateDisabled() bool {
+	return DisableAutoUpdate == "true"
 }

@@ -12,7 +12,7 @@ devplan version
 
 ## Self-Update
 
-The CLI can update itself to the latest production version or to a specific version.
+The CLI can update itself to the latest production version or to a specific version. Note that auto-update functionality is only available in binaries that have it enabled.
 
 ### Update to the latest production version
 
@@ -32,6 +32,12 @@ devplan update --to=1.2.3
 devplan update --list
 ```
 
+**Note for Homebrew users**: If you installed via Homebrew, the auto-update functionality is disabled. Please use Homebrew to update instead:
+
+```bash
+brew update && brew upgrade devplan
+```
+
 ## Preferences
 
 The CLI saves your preferences for company, project, and git protocol selections, and uses them as defaults on subsequent runs.
@@ -48,9 +54,29 @@ This will clear the saved preferences for company, project, and git protocol fro
 
 ## Installation
 
+### Direct Installation (Recommended for most users)
+
 ```bash
 /bin/bash -c "$(curl -fsSL https://app.devplan.com/api/cli/install)"
 ```
+
+This installs the binary with auto-update functionality enabled.
+
+### Homebrew Installation
+
+```bash
+brew tap devplaninc/devplan
+brew install devplan
+```
+
+The Homebrew version has auto-update functionality disabled. Use `brew upgrade devplan` to update.
+
+### Manual Installation
+
+Download the appropriate binary for your platform from the [GitHub Releases](https://github.com/devplaninc/devplan-cli/releases):
+
+- For direct installation with auto-update: Use `devplan-<platform>-<arch>.tar.gz` or `devplan-<platform>-<arch>.zip`
+- For package managers: Use `devplan-<platform>-<arch>-noautoupdate.tar.gz` or `devplan-<platform>-<arch>-noautoupdate.zip`
 
 ## Development Set up
 
@@ -88,6 +114,10 @@ git push origin v1.2.3
 ```
 
 2. This will trigger the GitHub Actions workflow to build and publish the release.
+
+The release process automatically creates two sets of binaries for each supported platform:
+- `devplan-<platform>-<arch>.*` - With auto-update functionality enabled
+- `devplan-<platform>-<arch>-noautoupdate.*` - With auto-update functionality disabled (for package managers)
 
 ### Marking a version as production
 

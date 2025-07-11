@@ -69,3 +69,185 @@ jobs:
           asset_path: ./build/checksums.txt
           asset_name: checksums.txt
           asset_content_type: text/plain
+          
+      - name: Upload Linux amd64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-linux-amd64.tar.gz
+          asset_name: devplan-linux-amd64.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Linux arm64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-linux-arm64.tar.gz
+          asset_name: devplan-linux-arm64.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS amd64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-darwin-amd64.tar.gz
+          asset_name: devplan-darwin-amd64.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS arm64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-darwin-arm64.tar.gz
+          asset_name: devplan-darwin-arm64.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Windows amd64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-windows-amd64.zip
+          asset_name: devplan-windows-amd64.zip
+          asset_content_type: application/zip
+          
+      - name: Upload Windows arm64 (auto-update enabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-windows-arm64.zip
+          asset_name: devplan-windows-arm64.zip
+          asset_content_type: application/zip
+          
+      - name: Upload Linux amd64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-linux-amd64-noautoupdate.tar.gz
+          asset_name: devplan-linux-amd64-noautoupdate.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Linux arm64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-linux-arm64-noautoupdate.tar.gz
+          asset_name: devplan-linux-arm64-noautoupdate.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS amd64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-darwin-amd64-noautoupdate.tar.gz
+          asset_name: devplan-darwin-amd64-noautoupdate.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload macOS arm64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-darwin-arm64-noautoupdate.tar.gz
+          asset_name: devplan-darwin-arm64-noautoupdate.tar.gz
+          asset_content_type: application/gzip
+          
+      - name: Upload Windows amd64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-windows-amd64-noautoupdate.zip
+          asset_name: devplan-windows-amd64-noautoupdate.zip
+          asset_content_type: application/zip
+          
+      - name: Upload Windows arm64 (auto-update disabled)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/devplan-windows-arm64-noautoupdate.zip
+          asset_name: devplan-windows-arm64-noautoupdate.zip
+          asset_content_type: application/zip
+          
+      - name: Validate Release Assets
+        run: |
+          echo "Validating that all required assets are present..."
+          required_assets=(
+            "devplan-linux-amd64.tar.gz"
+            "devplan-linux-arm64.tar.gz"
+            "devplan-darwin-amd64.tar.gz"
+            "devplan-darwin-arm64.tar.gz"
+            "devplan-windows-amd64.zip"
+            "devplan-windows-arm64.zip"
+            "devplan-linux-amd64-noautoupdate.tar.gz"
+            "devplan-linux-arm64-noautoupdate.tar.gz"
+            "devplan-darwin-amd64-noautoupdate.tar.gz"
+            "devplan-darwin-arm64-noautoupdate.tar.gz"
+            "devplan-windows-amd64-noautoupdate.zip"
+            "devplan-windows-arm64-noautoupdate.zip"
+          )
+          
+          missing_assets=()
+          for asset in "${required_assets[@]}"; do
+            if [[ ! -f "./build/${asset}" ]]; then
+              missing_assets+=("${asset}")
+            fi
+          done
+          
+          if [[ ${#missing_assets[@]} -gt 0 ]]; then
+            echo "ERROR: Missing required assets:"
+            printf '%s\n' "${missing_assets[@]}"
+            exit 1
+          fi
+          
+          echo "All required assets are present!"
+          
+      - name: Verify Auto-Update is Disabled in No-Auto-Update Binaries
+        run: |
+          echo "Verifying that auto-update is disabled in no-auto-update binaries..."
+          
+          # Extract and test a few binaries to verify auto-update is disabled
+          cd build
+          
+          # Test Linux amd64 no-auto-update binary
+          tar -xzf devplan-linux-amd64-noautoupdate.tar.gz
+          if ./devplan-linux-amd64-noautoupdate version | grep -q "Auto-update: disabled"; then
+            echo "✓ Linux amd64 no-auto-update binary verified"
+          else
+            echo "✗ Linux amd64 no-auto-update binary failed verification"
+            exit 1
+          fi
+          
+          # Test macOS arm64 no-auto-update binary (if on macOS)
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            tar -xzf devplan-darwin-arm64-noautoupdate.tar.gz
+            if ./devplan-darwin-arm64-noautoupdate version | grep -q "Auto-update: disabled"; then
+              echo "✓ macOS arm64 no-auto-update binary verified"
+            else
+              echo "✗ macOS arm64 no-auto-update binary failed verification"
+              exit 1
+            fi
+          fi
+          
+          echo "Auto-update disabled verification completed!"
