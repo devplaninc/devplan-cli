@@ -3,13 +3,14 @@ package clone
 import (
 	"context"
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
-	"github.com/devplaninc/devplan-cli/internal/utils/picker"
-	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
+	"github.com/devplaninc/devplan-cli/internal/utils/picker"
+	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
@@ -28,6 +29,7 @@ var (
 func create() *cobra.Command {
 	targetPicker := &picker.TargetCmd{}
 	var repoName string
+	var start bool
 	cmd := &cobra.Command{
 		Use:   "clone",
 		Short: "Clone a repository and focus on a feature",
@@ -36,16 +38,17 @@ This command streamlines the workflow of cloning a repository and focusing on a 
 It will clone the repository into the configured workplace directory and set up the necessary rules.`,
 		PreRunE: targetPicker.PreRun,
 		Run: func(_ *cobra.Command, _ []string) {
-			runClone(targetPicker, repoName)
+			runClone(targetPicker, repoName, start)
 		},
 	}
 	targetPicker.Prepare(cmd)
 	cmd.Flags().StringVarP(&repoName, "repo", "r", "", "Repository to clone (full name or url)")
+	cmd.Flags().BoolVar(&start, "start", false, "Start execution immediately after cloning (only supported for ClaudeCode now)")
 
 	return cmd
 }
 
-func runClone(targetPicker *picker.TargetCmd, repoName string) {
+func runClone(targetPicker *picker.TargetCmd, repoName string, start bool) {
 	assistants, err := picker.AssistantForIDE(targetPicker.IDEName)
 	check(err)
 	target, err := picker.Target(targetPicker)
@@ -72,7 +75,7 @@ func runClone(targetPicker *picker.TargetCmd, repoName string) {
 	check(ide.WriteMultiIDE(assistants, prompt, summary, targetPicker.Yes))
 
 	if targetPicker.IDEName != "" {
-		launch(ide.IDE(targetPicker.IDEName), repoPath)
+		launch(ide.IDE(targetPicker.IDEName), repoPath, start)
 		return
 	}
 	displayPath := pathWithTilde(repoPath)
@@ -113,8 +116,8 @@ func prepareRepository(
 	return repoPath, git.EnsureRepoPath(repoPath), nil
 }
 
-func launch(ideName ide.IDE, repoPath string) {
-	launched, err := ide.LaunchIDE(ideName, repoPath)
+func launch(ideName ide.IDE, repoPath string, start bool) {
+	launched, err := ide.LaunchIDE(ideName, repoPath, start)
 	check(err)
 	if launched {
 		out.Successf(

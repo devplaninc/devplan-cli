@@ -10,16 +10,16 @@ import (
 )
 
 // LaunchIDE launches the specified IDE at the given repository path
-func LaunchIDE(ide IDE, repoPath string) (bool, error) {
+func LaunchIDE(ide IDE, repoPath string, start bool) (bool, error) {
 	installed, err := DetectInstalledIDEs()
 	if err != nil {
 		return false, fmt.Errorf("failed to detect installed IDEs: %w", err)
 	}
-	return LaunchWithPath(installed[ide], repoPath)
+	return LaunchWithPath(installed[ide], repoPath, start)
 }
 
 // LaunchWithPath launches the specified IDE at the given repository path
-func LaunchWithPath(idePath string, repoPath string) (bool, error) {
+func LaunchWithPath(idePath string, repoPath string, start bool) (bool, error) {
 	if _, err := os.Stat(idePath); os.IsNotExist(err) {
 		return false, fmt.Errorf("IDE executable not found at %s", idePath)
 	}
@@ -32,7 +32,7 @@ func LaunchWithPath(idePath string, repoPath string) (bool, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
 		if isClaudeExecutable(idePath) {
-			return launchClaudeInTerminal(idePath, repoPath)
+			return launchClaudeInTerminal(idePath, repoPath, start)
 		}
 		cmd = exec.Command(idePath, repoPath)
 	default:
@@ -51,11 +51,16 @@ func isClaudeExecutable(idePath string) bool {
 }
 
 // launchClaudeInTerminal launches Claude in a new terminal session
-func launchClaudeInTerminal(idePath string, repoPath string) (bool, error) {
+func launchClaudeInTerminal(idePath string, repoPath string, start bool) (bool, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		// On macOS, use osascript to open a new Terminal window
-		script := fmt.Sprintf(`tell application "Terminal" to do script "cd '%s' && '%s'"`, repoPath, idePath)
+		instructions := ""
+		if start {
+			instructions = ` \"Execute current feature\"`
+		}
+		script := fmt.Sprintf(
+			`tell application "Terminal" to do script "cd '%s' && '%s'%s"`, repoPath, idePath, instructions)
 		cmd := exec.Command("osascript", "-e", script)
 		err := cmd.Start()
 		return true, err

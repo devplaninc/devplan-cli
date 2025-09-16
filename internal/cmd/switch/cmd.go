@@ -2,10 +2,11 @@ package switch_cmd
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
@@ -26,14 +27,14 @@ func create() *cobra.Command {
 		Short:   "List and switch between cloned features",
 		Long:    `List all cloned features in the workspace and switch to one of them by opening it in your preferred IDE.`,
 		Run: func(_ *cobra.Command, _ []string) {
-			runSwitch(ideName)
+			runSwitch(ideName, false)
 		},
 	}
 	cmd.Flags().StringVarP(&ideName, "ide", "i", "", "IDE to use (e.g., vscode, intellij, cursor)")
 	return cmd
 }
 
-func runSwitch(ideName string) {
+func runSwitch(ideName string, start bool) {
 	features, err := workspace.ListClonedFeatures()
 	check(err)
 	if len(features) == 0 {
@@ -61,7 +62,7 @@ func runSwitch(ideName string) {
 
 	if ideName != "" {
 		ideV := ide.IDE(strings.ToLower(ideName))
-		launchSelectedIDE(ideV, featurePath)
+		launchSelectedIDE(ideV, featurePath, start)
 		return
 	}
 
@@ -89,10 +90,10 @@ func runSwitch(ideName string) {
 	}
 	selectedIDEName := ideNames[ideIdx]
 
-	launchSelectedIDE(selectedIDEName, featurePath)
+	launchSelectedIDE(selectedIDEName, featurePath, start)
 }
 
-func launchSelectedIDE(ideName ide.IDE, featurePath string) {
+func launchSelectedIDE(ideName ide.IDE, featurePath string, start bool) {
 	// Check for subfolders in the feature path
 	pathToOpen, err := getPathToOpen(featurePath)
 	if err != nil {
@@ -101,7 +102,7 @@ func launchSelectedIDE(ideName ide.IDE, featurePath string) {
 	}
 
 	fmt.Printf("Opening %s in %s...\n", out.H(pathToOpen), out.Hf("%v", ideName))
-	launched, err := ide.LaunchIDE(ideName, pathToOpen)
+	launched, err := ide.LaunchIDE(ideName, pathToOpen, start)
 	if err != nil {
 		fmt.Println(out.Failf("Failed to launch IDE: %v", err))
 		os.Exit(1)
