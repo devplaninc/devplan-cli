@@ -2,14 +2,16 @@ package picker
 
 import (
 	"fmt"
+	"slices"
+	"strings"
+
 	"github.com/devplaninc/devplan-cli/internal/components/selector"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/grouping"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/templates"
 	"github.com/spf13/cobra"
-	"slices"
-	"strings"
 )
 
 const (
@@ -22,6 +24,7 @@ type TargetCmd struct {
 	CompanyID  int32
 	ProjectID  string
 	FeatureID  string
+	TaskID     string
 	IDEName    string
 	Yes        bool
 	SingleShot bool
@@ -40,6 +43,9 @@ func (c *TargetCmd) PreRun(_ *cobra.Command, _ []string) error {
 	if c.Steps && c.FeatureID == "" {
 		return fmt.Errorf("--steps must be used together with -f (--feature)")
 	}
+	if c.TaskID != "" && c.SingleShot {
+		return fmt.Errorf("--task cannot be used with -s (--single-shot)")
+	}
 	return nil
 }
 
@@ -53,6 +59,7 @@ func (c *TargetCmd) Prepare(cmd *cobra.Command) {
 		&c.IDEName, "ide", "i", "", fmt.Sprintf("IDE to use. Allowed values: %v", strings.Join(ideStr, ", ")))
 	cmd.Flags().StringVarP(&c.ProjectID, "project", "p", "", "Project id to focus on")
 	cmd.Flags().StringVarP(&c.FeatureID, "feature", "f", "", "Target id to focus on")
+	cmd.Flags().StringVar(&c.TaskID, "task", "", "Task id to focus on (optional)")
 	cmd.Flags().Int32VarP(&c.CompanyID, "company", "c", -1, "Company id to focus on")
 	cmd.Flags().BoolVarP(&c.Yes, "yes", "y", false, "Execute without confirmation")
 	cmd.Flags().BoolVarP(&c.SingleShot, "single-shot", "s", false, "Use a single-shot prompt for all features (cannot be used with -f)")
@@ -64,9 +71,14 @@ type DevTarget struct {
 	SingleShot      bool
 	ProjectWithDocs *documents.ProjectWithDocs
 	Steps           bool
+	Task            *documents.DocumentEntity
+	Template        *templates.ProjectTemplate
 }
 
 func (d DevTarget) GetName() string {
+	if t := d.Task; t != nil {
+		return t.GetTitle()
+	}
 	if d.SingleShot {
 		return d.ProjectWithDocs.GetProject().GetTitle()
 	}
@@ -87,6 +99,7 @@ func Target(cmd *TargetCmd) (DevTarget, error) {
 	projectID := cmd.ProjectID
 	featureID := cmd.FeatureID
 	singleShot := cmd.SingleShot
+	takID := cmd.TaskID
 	companies := self.GetOwnInfo().GetCompanyDetails()
 	company, err := selector.Company(companies, selector.Props{}, companyID)
 	if err != nil {
@@ -96,18 +109,46 @@ func Target(cmd *TargetCmd) (DevTarget, error) {
 	if err != nil {
 		return DevTarget{}, err
 	}
+	templatesRep, err := cl.GetProjectTemplates(company.GetId())
+	if err != nil {
+		return DevTarget{}, err
+	}
 	result := DevTarget{
 		SingleShot:      singleShot,
 		ProjectWithDocs: project,
 	}
-	if !result.SingleShot {
-		features := getFeatures(project)
-		feature, err := selector.Feature(features, selector.Props{}, featureID)
-		if err != nil {
-			return DevTarget{}, err
+	for _, t := range templatesRep.GetProjectTemplates() {
+		if t.GetId() == project.GetProject().GetTemplateId() {
+			result.Template = t
+			break
 		}
-		result.SpecificFeature = feature
-		result.Steps = cmd.Steps
+	}
+	features := getFeatures(project)
+	tasks := getTasks(project)
+	if takID != "" {
+		for _, d := range tasks {
+			if d.GetType() == documents.DocumentType_TASK && d.GetId() == takID {
+				result.Task = d
+				break
+			}
+		}
+	}
+	if result.Task == nil {
+		// First, if tasks exist at all, select a task. Only if no tasks, select feature.
+		if len(tasks) > 0 {
+			task, err := selector.Task(tasks, selector.Props{}, "")
+			if err != nil {
+				return DevTarget{}, err
+			}
+			result.Task = task
+		} else if !result.SingleShot {
+			feature, err := selector.Feature(features, selector.Props{}, featureID)
+			if err != nil {
+				return DevTarget{}, err
+			}
+			result.SpecificFeature = feature
+			result.Steps = cmd.Steps
+		}
 	}
 
 	return result, nil
@@ -147,9 +188,17 @@ func selectProject(cl *devplan.Client, companyID int32, projectID string) (*docu
 }
 
 func getFeatures(project *documents.ProjectWithDocs) []*documents.DocumentEntity {
+	return getTypedDocs(project, documents.DocumentType_FEATURE)
+}
+
+func getTasks(project *documents.ProjectWithDocs) []*documents.DocumentEntity {
+	return getTypedDocs(project, documents.DocumentType_TASK)
+}
+
+func getTypedDocs(project *documents.ProjectWithDocs, docType documents.DocumentType) []*documents.DocumentEntity {
 	var docs []*documents.DocumentEntity
 	for _, d := range project.GetDocs() {
-		if d.GetType() == documents.DocumentType_FEATURE {
+		if d.GetType() == docType {
 			docs = append(docs, d)
 		}
 	}

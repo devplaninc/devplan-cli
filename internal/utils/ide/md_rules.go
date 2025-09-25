@@ -3,10 +3,11 @@ package ide
 import (
 	"bytes"
 	"fmt"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"strings"
 	"text/template"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 )
 
 func allOtherRulesSuffix(rulesPath string, ext string) string {
@@ -53,7 +54,7 @@ func replacePaths(str string, rulesPath string, ext string) string {
 
 type mdRulesParams struct {
 	rulesPath     string
-	featurePrompt *documents.DocumentEntity
+	prompt        *prompts.Info
 	repoSummary   *integrations.RepositorySummary
 	devFlowName   string
 	devFlowPath   string
@@ -77,11 +78,11 @@ func createMdRules(p mdRulesParams) error {
 		NeedsBackup: p.backUpDevFlow,
 	}
 	var rules []Rule
-	if p.featurePrompt != nil {
+	if p.prompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
 			rulePaths{dir: p.rulesPath, ext: "md"},
 			Rule{},
-			p.featurePrompt)
+			p.prompt)
 		if err != nil {
 			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}

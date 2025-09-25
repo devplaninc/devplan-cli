@@ -13,6 +13,10 @@ func projectsPath(companyID int32) string {
 	return fmt.Sprintf("%v/projects", companyPath(companyID))
 }
 
+func templatesPath(companyID int32) string {
+	return fmt.Sprintf("%v/templates", companyPath(companyID))
+}
+
 func groupsPath(companyID int32) string {
 	return fmt.Sprintf("%v/groups", companyPath(companyID))
 }

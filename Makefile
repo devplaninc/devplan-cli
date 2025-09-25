@@ -3,6 +3,7 @@
 ROOT := $(shell git rev-parse --show-toplevel)
 export GOBIN := $(ROOT)/bin
 export GOPRIVATE=github.com/devplaninc/webapp
+export GONOPROXY=github.com/devplaninc/webapp
 
 bin/protoc-gen-go:
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go

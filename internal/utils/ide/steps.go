@@ -3,9 +3,11 @@ package ide
 import (
 	"bytes"
 	"fmt"
+	"text/template"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 	"google.golang.org/protobuf/encoding/protojson"
-	"text/template"
 )
 
 const stepsDescription = `Bellow are step-by-step instructions for the current feature.
@@ -39,11 +41,9 @@ type step struct {
 	FullPath     string
 }
 
-func generateSteppedRules(
-	paths rulePaths, base Rule, featurePrompt *documents.DocumentEntity,
-) ([]Rule, error) {
+func generateSteppedRules(paths rulePaths, base Rule, prompt *prompts.Info) ([]Rule, error) {
 	c := &documents.SteppedFeaturePromptContent{}
-	if err := protojson.Unmarshal([]byte(featurePrompt.GetContent()), c); err != nil {
+	if err := protojson.Unmarshal([]byte(prompt.GetDoc().GetContent()), c); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal feature prompt content: %w", err)
 	}
 	st := &steps{Summary: c.GetRequirementsSummary()}

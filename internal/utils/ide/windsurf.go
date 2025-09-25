@@ -2,11 +2,12 @@ package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 )
 
-func createWindsurfRulesFromPrompt(rulesPath string, featurePrompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
+func createWindsurfRulesFromPrompt(rulesPath string, prompt *prompts.Info, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{Name: "flow", Content: replacePaths(devFlowRule, rulesPath, "md"),
 			Header: getWindsurfRuleHeader(WindsurfHeader{Description: devFlowRuleDescription}),
@@ -14,12 +15,12 @@ func createWindsurfRulesFromPrompt(rulesPath string, featurePrompt *documents.Do
 		},
 	}
 
-	if featurePrompt != nil {
+	if prompt != nil {
 		cfRules, err := generateCurrentFeatureRules(
 			rulePaths{dir: rulesPath, ext: "md"},
 			Rule{
 				Header: getWindsurfRuleHeader(WindsurfHeader{Description: currentFeatRuleDescription}),
-			}, featurePrompt)
+			}, prompt)
 		if err != nil {
 			return fmt.Errorf("failed to generate current feature rules: %w", err)
 		}

@@ -1,13 +1,13 @@
 module github.com/devplaninc/devplan-cli
 
-go 1.24.2
+go 1.25.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/devplaninc/webapp v0.3.1
+	github.com/devplaninc/webapp v0.4.0
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/pkg/errors v0.9.1

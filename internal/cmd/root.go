@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/devplaninc/devplan-cli/internal/cmd/auth"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clean"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
@@ -9,7 +11,6 @@ import (
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
 	prefs_utils "github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (

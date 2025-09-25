@@ -2,13 +2,14 @@ package focus
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (
@@ -40,14 +41,14 @@ func runFocus(targetPicker *picker.TargetCmd) {
 	project := target.ProjectWithDocs
 	summary, err := loaders.RepoSummary(target, repo)
 	check(err)
-	featPrompt, err := picker.GetTargetPrompt(target, project.GetDocs())
+	prompt, err := picker.GetTargetPrompt(target, project.GetDocs())
 	check(err)
 
 	if err := ide.CleanupCurrentFeaturePrompts(ides); err != nil {
 		out.Pfailf("Failed to clean up prompt files: %v\n", err)
 	}
 
-	check(ide.WriteMultiIDE(ides, featPrompt, summary, targetPicker.Yes))
+	check(ide.WriteMultiIDE(ides, prompt, summary, targetPicker.Yes))
 
 	fmt.Println("\nNow you can start your IDE and ask AI assistant to execute current feature. Happy coding!")
 }

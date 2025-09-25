@@ -2,11 +2,12 @@ package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 )
 
-func createCursorRulesFromPrompt(rulesPath string, prompt *documents.DocumentEntity, repoSummary *integrations.RepositorySummary) error {
+func createCursorRulesFromPrompt(rulesPath string, prompt *prompts.Info, repoSummary *integrations.RepositorySummary) error {
 	rules := []Rule{
 		{Name: "flow",
 			Content: replacePaths(devFlowRule, rulesPath, "mdc"),

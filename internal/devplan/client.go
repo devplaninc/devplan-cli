@@ -2,13 +2,14 @@ package devplan
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/user"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"io"
-	"net/http"
 )
 
 type Config struct {
@@ -32,6 +33,11 @@ func NewClient(config Config) *Client {
 func (c *Client) GetCompanyProjects(companyID int32) (*company.GetProjectsWithDocsResponse, error) {
 	result := &company.GetProjectsWithDocsResponse{}
 	return result, c.getParsed(projectsPath(companyID), result)
+}
+
+func (c *Client) GetProjectTemplates(companyID int32) (*company.GetTemplatesResponse, error) {
+	result := &company.GetTemplatesResponse{}
+	return result, c.getParsed(templatesPath(companyID), result)
 }
 
 func (c *Client) GetGroup(companyID int32, groupID string) (*company.GetGroupResponse, error) {

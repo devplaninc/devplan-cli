@@ -2,18 +2,18 @@ package ide
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/devplaninc/devplan-cli/internal/utils/git"
-	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
-	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
-	"github.com/manifoldco/promptui"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
+	"github.com/manifoldco/promptui"
+	"github.com/pkg/errors"
 )
 
 const ruleFileNamePrefix = "devplan_"
@@ -31,17 +31,17 @@ type Rule struct {
 
 func WriteMultiIDE(
 	assistants []Assistant,
-	featPrompt *documents.DocumentEntity,
+	prompt *prompts.Info,
 	summary *integrations.RepositorySummary,
 	yes bool,
 ) error {
-	err := confirmRulesGeneration(assistants, featPrompt, summary, yes)
+	err := confirmRulesGeneration(assistants, prompt, summary, yes)
 	if err != nil {
 		return err
 	}
 	for _, name := range assistants {
 		fmt.Println()
-		if err := processAssistant(name, featPrompt, summary); err != nil {
+		if err := processAssistant(name, prompt, summary); err != nil {
 			return err
 		}
 	}
@@ -63,19 +63,19 @@ func GetRulesPath(asst Assistant) (string, error) {
 	}
 }
 
-func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summary *integrations.RepositorySummary) error {
+func processAssistant(asst Assistant, prompt *prompts.Info, summary *integrations.RepositorySummary) error {
 	rulesPath, err := GetRulesPath(asst)
 	if err != nil {
 		return err
 	}
-	params := mdRulesParams{rulesPath: rulesPath, featurePrompt: featPrompt, repoSummary: summary}
+	params := mdRulesParams{rulesPath: rulesPath, prompt: prompt, repoSummary: summary}
 	switch asst {
 	case JunieAI:
 		err = createMdRules(params)
 	case CursorAI:
-		err = createCursorRulesFromPrompt(params.rulesPath, params.featurePrompt, params.repoSummary)
+		err = createCursorRulesFromPrompt(params.rulesPath, params.prompt, params.repoSummary)
 	case WindsurfAI:
-		err = createWindsurfRulesFromPrompt(params.rulesPath, params.featurePrompt, params.repoSummary)
+		err = createWindsurfRulesFromPrompt(params.rulesPath, params.prompt, params.repoSummary)
 	case ClaudeAI:
 		params.devFlowPath = "."
 		params.devFlowName = "CLAUDE"
@@ -97,15 +97,15 @@ func processAssistant(asst Assistant, featPrompt *documents.DocumentEntity, summ
 
 func confirmRulesGeneration(
 	assistants []Assistant,
-	featurePrompt *documents.DocumentEntity,
+	promptInfo *prompts.Info,
 	repoSummary *integrations.RepositorySummary,
 	yes bool,
 ) error {
 	if yes {
 		return nil
 	}
-	if featurePrompt == nil && repoSummary == nil {
-		return fmt.Errorf("neither feature prompt nor repo summary found for the feature and repository")
+	if promptInfo == nil && repoSummary == nil {
+		return fmt.Errorf("neither prompt nor repo summary found for the feature and repository")
 	}
 	root, err := git.GetRoot()
 	if err != nil {
@@ -161,6 +161,10 @@ func WriteRules(rules []Rule, path string, extension string) error {
 
 		if t := rule.Target; t != nil && t.FeatureID != "" {
 			content = fmt.Sprintf("%v<!-- feature_id: %v -->\n\n", content, t.FeatureID)
+		}
+
+		if t := rule.Target; t != nil && t.TaskID != "" {
+			content = fmt.Sprintf("%v<!-- task_id: %v -->\n\n", content, t.TaskID)
 		}
 
 		content = fmt.Sprintf("%v%v", content, rule.Content)
@@ -226,16 +230,13 @@ type rulePaths struct {
 func generateCurrentFeatureRules(
 	paths rulePaths,
 	base Rule,
-	prompt *documents.DocumentEntity,
+	prompt *prompts.Info,
 ) ([]Rule, error) {
-	target, err := prompts.GetTarget(prompt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get target info for feature prompt: %w", err)
-	}
+	target := prompt.GetTarget()
 	if target == nil || !target.Stepped {
 		rule := Rule{
 			Name:     ruleFileNameCurrentFeaturePrefix,
-			Content:  prompt.GetContent(),
+			Content:  prompt.GetDoc().GetContent(),
 			Header:   base.Header,
 			Footer:   base.Footer,
 			NoPrefix: base.NoPrefix,
