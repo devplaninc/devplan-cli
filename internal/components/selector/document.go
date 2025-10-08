@@ -49,5 +49,5 @@ func Feature(features []*documents.DocumentEntity, props Props, chosen string) (
 }
 
 func Task(tasks []*documents.DocumentEntity, props Props, chosen string) (*documents.DocumentEntity, error) {
-	return Document("feature", tasks, props, chosen)
+	return Document("task", tasks, props, chosen)
 }

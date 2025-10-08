@@ -99,7 +99,7 @@ func Target(cmd *TargetCmd) (DevTarget, error) {
 	projectID := cmd.ProjectID
 	featureID := cmd.FeatureID
 	singleShot := cmd.SingleShot
-	takID := cmd.TaskID
+	taskID := cmd.TaskID
 	companies := self.GetOwnInfo().GetCompanyDetails()
 	company, err := selector.Company(companies, selector.Props{}, companyID)
 	if err != nil {
@@ -125,9 +125,9 @@ func Target(cmd *TargetCmd) (DevTarget, error) {
 	}
 	features := getFeatures(project)
 	tasks := getTasks(project)
-	if takID != "" {
+	if taskID != "" {
 		for _, d := range tasks {
-			if d.GetType() == documents.DocumentType_TASK && d.GetId() == takID {
+			if d.GetType() == documents.DocumentType_TASK && d.GetId() == taskID {
 				result.Task = d
 				break
 			}
