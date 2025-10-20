@@ -19,9 +19,17 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure git to access private modules in same org
+      - name: Configure git & Go to access private modules in same org
         run: |
+          # Ensure both Git and Go can authenticate to private repos
           git config --global url."https://${{ secrets.GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          echo "machine github.com login ${{ secrets.GITHUB_TOKEN }} password x-oauth-basic" > ~/.netrc
+          chmod 600 ~/.netrc
+
+          # Set GOPRIVATE for your org
+          go env -w GOPRIVATE=github.com/devplaninc/*
+          go env -w GONOPROXY=github.com/devplaninc/*
+          go env -w GONOSUMDB=github.com/devplaninc/*
 
       - name: Set up Go
         uses: actions/setup-go@v5
