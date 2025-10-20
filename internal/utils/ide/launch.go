@@ -69,3 +69,15 @@ func launchClaudeInTerminal(idePath string, repoPath string, start bool) (bool, 
 		return false, nil
 	}
 }
+
+func PathWithTilde(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	pref := fmt.Sprintf("%s/", home)
+	if strings.HasPrefix(path, pref) {
+		return "~/" + strings.TrimPrefix(path, pref)
+	}
+	return path
+}

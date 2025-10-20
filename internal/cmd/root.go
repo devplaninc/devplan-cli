@@ -7,7 +7,10 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/auth"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clean"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
+	"github.com/devplaninc/devplan-cli/internal/cmd/dev"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
+	"github.com/devplaninc/devplan-cli/internal/cmd/mcp"
+	"github.com/devplaninc/devplan-cli/internal/cmd/spec"
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
 	prefs_utils "github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/spf13/cobra"
@@ -40,4 +43,7 @@ func init() {
 	rootCmd.AddCommand(clone.Cmd)
 	rootCmd.AddCommand(switch_cmd.Cmd)
 	rootCmd.AddCommand(clean.Cmd)
+	rootCmd.AddCommand(dev.Cmd)
+	rootCmd.AddCommand(mcp.Cmd)
+	rootCmd.AddCommand(spec.Cmd)
 }

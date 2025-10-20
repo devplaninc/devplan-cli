@@ -2,11 +2,12 @@ package prefs
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
-	"os"
-	"path/filepath"
 )
 
 // Domain is used to specify which domain to use (app, beta, local)
