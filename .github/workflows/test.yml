@@ -29,8 +29,11 @@ jobs:
         with:
           go-version: '1.25'
 
+      - name: Get dependencies
+        run: go mod tidy
+
       - name: Run tests
-        run: make deps test
+        run: make test
 
       - name: Build CLI
         run: |
