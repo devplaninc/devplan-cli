@@ -3,7 +3,7 @@ name: Test Build
 on:
   push:
     branches:
-      - main
+      - '**'
 
 jobs:
   test-build:
@@ -26,8 +26,8 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Get dependencies
-        run: go mod tidy
+      - name: Run tests
+        run: make test
 
       - name: Build CLI
         run: |
