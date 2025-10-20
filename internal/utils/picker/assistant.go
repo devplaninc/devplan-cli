@@ -2,10 +2,11 @@ package picker
 
 import (
 	"fmt"
+	"slices"
+
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/manifoldco/promptui"
-	"slices"
 )
 
 func AssistantForIDE(ideName string) ([]ide.Assistant, error) {

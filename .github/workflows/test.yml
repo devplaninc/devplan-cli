@@ -3,16 +3,19 @@ name: Test Build
 on:
   push:
     branches:
-      - main
+      - '**'
 
 jobs:
   test-build:
     name: Test Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read          # allow checkout
+      packages: read          # if using GitHub Packages
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -22,12 +25,15 @@ jobs:
         run: git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
 
       - name: Get dependencies
         run: go mod tidy
+
+      - name: Run tests
+        run: make test
 
       - name: Build CLI
         run: |
