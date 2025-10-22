@@ -3,13 +3,14 @@ package git
 import (
 	"errors"
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/transport"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
 type RepoInfo struct {

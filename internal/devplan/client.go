@@ -11,6 +11,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/user"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/worklog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -71,6 +72,24 @@ func (c *Client) GetSelf() (*user.GetSelfResponse, error) {
 func (c *Client) GetIntegration(companyID int32, provider string) (*company.GetIntegrationPropertiesResponse, error) {
 	result := &company.GetIntegrationPropertiesResponse{}
 	return result, c.getParsed(integrationPath(companyID, provider), result)
+}
+
+func (c *Client) GetAllRepos(companyID int32) ([]*integrations.GitRepository, error) {
+	ghResult := &company.GetIntegrationPropertiesResponse{}
+	err := c.getParsed(integrationPath(companyID, "github"), ghResult)
+	if err != nil {
+		return nil, err
+	}
+	bbResult := &company.GetIntegrationPropertiesResponse{}
+	err = c.getParsed(integrationPath(companyID, "bitbucket"), bbResult)
+	if err != nil {
+		return nil, err
+	}
+	result := ghResult.GetInfo().GetGithub().GetRepositories()
+	for _, integ := range bbResult.GetInfo().GetBitBucket().GetIntegrations() {
+		result = append(result, integ.GetRepositories()...)
+	}
+	return result, nil
 }
 
 func (c *Client) GetDevRule(companyID int32, ruleName string) (*company.GetDevRuleResponse, error) {

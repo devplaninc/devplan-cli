@@ -95,13 +95,13 @@ func confirmRepository(repoName string, companyID int32) (git.RepoInfo, error) {
 		return git.RepoInfo{}, err
 	}
 	cl := devplan.NewClient(devplan.Config{})
-	resp, err := cl.GetIntegration(companyID, "github")
+	repos, err := cl.GetAllRepos(companyID)
 	if err != nil {
-		return git.RepoInfo{}, fmt.Errorf("failed to get integration: %v", err)
+		return git.RepoInfo{}, fmt.Errorf("failed to get git repositories: %v", err)
 	}
 	var repoNames []string
 	byName := make(map[string]git.RepoInfo)
-	for _, repo := range resp.GetInfo().GetGithub().GetRepositories() {
+	for _, repo := range repos {
 		repoInfo := git.RepoInfo{
 			FullNames: []string{repo.GetFullName()},
 			URLs:      []string{repo.GetUrl()},
@@ -151,7 +151,35 @@ func getRepoPath(repo git.RepoInfo, target picker.DevTarget) (string, bool, erro
 }
 
 func cloneRepository(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
-	// Use the last successful protocol from preferences
+	for _, url := range repo.URLs {
+		if strings.Contains(strings.ToLower(url), "github.com") {
+			return cloneGithubRepo(ctx, repo, path, branchToCreate)
+		}
+		if strings.Contains(strings.ToLower(url), "bitbucket.org") {
+			return cloneBitbucketRepo(ctx, repo, path, branchToCreate)
+		}
+	}
+	return fmt.Errorf("unsupported repository URL: %+v", repo)
+}
+
+func cloneBitbucketRepo(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
+	var err error
+	for _, url := range repo.URLs {
+		err = tryRepoClone(ctx, url, path, branchToCreate)
+		if err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to clone repository .\n"+
+		"Please ensure you have:\n"+
+		"1. (Recommended) Git Credential Manager installed - https://github.com/git-ecosystem/git-credential-manager \n"+
+		"2. Valid Bitbucket credentials configured for SSH is you use SSH-based connection\n"+
+		"3. Proper network access to BitBucket\n"+
+		"Original error: %w", err)
+}
+
+func cloneGithubRepo(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
 	protocol := prefs.GetLastGitProtocol()
 	httpsURL := fmt.Sprintf("https://github.com/%s", repo.GetFullName())
 	sshURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
