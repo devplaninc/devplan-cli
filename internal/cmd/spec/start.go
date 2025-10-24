@@ -63,7 +63,7 @@ func createStartCmd() *cobra.Command {
 	}
 	cmd.Flags().Int32VarP(&companyID, "company", "c", 0, "Company id for a recipe")
 	cmd.Flags().StringVarP(&taskID, "task", "t", "", "Task id for a recipe")
-	cmd.Flags().StringVarP(&ideType, "ide", "i", "", "IDE to use ('claude' only right now)")
+	cmd.Flags().StringVarP(&ideType, "ide", "i", "", "IDE to use ('claude', 'cursor-cli' only right now)")
 	_ = cmd.MarkFlagRequired("company")
 	_ = cmd.MarkFlagRequired("task")
 	_ = cmd.MarkFlagRequired("ide")

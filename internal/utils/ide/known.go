@@ -8,19 +8,20 @@ import (
 type IDE string
 
 const (
-	PyCharm  IDE = "pycharm"
-	IntelliJ IDE = "intellij"
-	GoLand   IDE = "goland"
-	WebStorm IDE = "webstorm"
-	PhpStorm IDE = "phpstorm"
-	RubyMine IDE = "rubymine"
-	CLion    IDE = "clion"
-	Rider    IDE = "rider"
-	DataGrip IDE = "datagrip"
-	AppCode  IDE = "appcode"
-	Windsurf IDE = "windsurf"
-	Cursor   IDE = "cursor"
-	Claude   IDE = "claude"
+	PyCharm   IDE = "pycharm"
+	IntelliJ  IDE = "intellij"
+	GoLand    IDE = "goland"
+	WebStorm  IDE = "webstorm"
+	PhpStorm  IDE = "phpstorm"
+	RubyMine  IDE = "rubymine"
+	CLion     IDE = "clion"
+	Rider     IDE = "rider"
+	DataGrip  IDE = "datagrip"
+	AppCode   IDE = "appcode"
+	Windsurf  IDE = "windsurf"
+	Cursor    IDE = "cursor"
+	CursorCLI IDE = "cursor-cli"
+	Claude    IDE = "claude"
 )
 
 type Assistant string
@@ -55,7 +56,7 @@ func GetJetbrainsIDEs() []IDE {
 }
 
 func GetKnown() []IDE {
-	return append(GetJetbrainsIDEs(), Cursor, Windsurf, Claude)
+	return append(GetJetbrainsIDEs(), CursorCLI, Cursor, Windsurf, Claude)
 }
 
 func GetAssistant(ide IDE) (Assistant, error) {
@@ -64,6 +65,8 @@ func GetAssistant(ide IDE) (Assistant, error) {
 	}
 	switch ide {
 	case Cursor:
+		return CursorAI, nil
+	case CursorCLI:
 		return CursorAI, nil
 	case Windsurf:
 		return WindsurfAI, nil

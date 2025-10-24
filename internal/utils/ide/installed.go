@@ -16,6 +16,9 @@ func DetectInstalledIDEs() (map[IDE]string, error) {
 	if claudePath, err := exec.LookPath("claude"); err == nil {
 		detected[Claude] = claudePath
 	}
+	if cursorCLIPath, err := exec.LookPath("cursor-agent"); err == nil {
+		detected[CursorCLI] = cursorCLIPath
+	}
 
 	return detected, nil
 }

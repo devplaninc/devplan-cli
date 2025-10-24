@@ -16,7 +16,7 @@ type WorkLogReportInput struct {
 	Type              string `json:"type,omitempty" jsonschema:"optional worklog type. If present should be one of 'full_workflow', 'research', 'planning', 'coding', 'review', 'address_review'"`
 	Stage             string `json:"stage,omitempty" jsonschema:"optional worklog stage. If present should be one of 'started', 'running', 'ended', 'error'"`
 	ActionDescription string `json:"actionDescription,omitempty" jsonschema:"description of the action. Should be a 1-2 words description of what this work lof is about"`
-	AgentName         string `json:"agentName,omitempty" jsonschema:"name of the AI agent performing the operation, e.g. Claude, Cursor, Codex, etc."`
+	AgentName         string `json:"agentName,omitempty" jsonschema:"Based on your current execution environment, report the appropriate agent name, e.g. Cursor or Claude or Codex, etc. Use 'Cursor' when operating within Cursor IDE, 'Claude' when operating within ClaudeCode, etc.'"`
 }
 
 type WorkLogReportOutput struct {

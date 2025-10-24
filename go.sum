@@ -47,8 +47,8 @@ github.com/cyphar/filepath-securejoin v0.4.1/go.mod h1:Sdj7gXlvMcPZsbhwhQ33GguGL
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/devplaninc/adcp-core v0.2.1 h1:7PVdhWFLdhk/dRnXZ4ygcmGcnowN3SRciGVj724kSxA=
-github.com/devplaninc/adcp-core v0.2.1/go.mod h1:vL/MLO+3fOyNK/73VVFvET12ns6489vVRr/qLGJoub8=
+github.com/devplaninc/adcp-core v0.3.0 h1:FiSCuZd3dIzY73wFwhRtsHggAkiKaOgFd5H9hV/McaE=
+github.com/devplaninc/adcp-core v0.3.0/go.mod h1:vL/MLO+3fOyNK/73VVFvET12ns6489vVRr/qLGJoub8=
 github.com/devplaninc/adcp/clients/go v0.1.5 h1:6GzXjijOTWn1q/SGKlkabYbtjwbgmZzUi8bk+V0wxgE=
 github.com/devplaninc/adcp/clients/go v0.1.5/go.mod h1:VBYsMgJBrgOatrQLhuybofE+VnYx0t9hbodxx9vkeBI=
 github.com/devplaninc/webapp v0.6.0 h1:Bxjkjc/81o+y+YEJAdFtFEVtnXkzsY0Sk56b+WI4pE8=

@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/devplaninc/adcp-core v0.2.1
+	github.com/devplaninc/adcp-core v0.3.0
 	github.com/devplaninc/adcp/clients/go v0.1.5
 	github.com/devplaninc/webapp v0.6.0
 	github.com/go-git/go-git/v5 v5.16.0

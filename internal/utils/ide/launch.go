@@ -31,8 +31,8 @@ func LaunchWithPath(idePath string, repoPath string, start bool) (bool, error) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin", "linux", "windows":
-		if isClaudeExecutable(idePath) {
-			return launchClaudeInTerminal(idePath, repoPath, start)
+		if isTerminalExecutable(idePath) {
+			return launchInTerminal(idePath, repoPath, start)
 		}
 		cmd = exec.Command(idePath, repoPath)
 	default:
@@ -44,14 +44,13 @@ func LaunchWithPath(idePath string, repoPath string, start bool) (bool, error) {
 	return true, cmd.Start()
 }
 
-func isClaudeExecutable(idePath string) bool {
-	// Check if the executable name contains "claude"
-	execName := filepath.Base(idePath)
-	return strings.Contains(strings.ToLower(execName), "claude")
+func isTerminalExecutable(idePath string) bool {
+	execName := strings.ToLower(filepath.Base(idePath))
+	return strings.Contains(execName, "claude") || strings.Contains(execName, "cursor-agent")
 }
 
-// launchClaudeInTerminal launches Claude in a new terminal session
-func launchClaudeInTerminal(idePath string, repoPath string, start bool) (bool, error) {
+// launchInTerminal launches CLI IDE in a new terminal session
+func launchInTerminal(idePath string, repoPath string, start bool) (bool, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		// On macOS, use osascript to open a new Terminal window
@@ -59,15 +58,23 @@ func launchClaudeInTerminal(idePath string, repoPath string, start bool) (bool, 
 		if start {
 			instructions = ` \"Execute current feature\"`
 		}
+		extra := getExtraLaunchParams(idePath)
 		script := fmt.Sprintf(
-			`tell application "Terminal" to do script "cd '%s' && '%s'%s"`, repoPath, idePath, instructions)
+			`tell application "Terminal" to do script "cd '%s' && '%s'%v %s"`, repoPath, idePath, extra, instructions)
 		cmd := exec.Command("osascript", "-e", script)
 		err := cmd.Start()
 		return true, err
 	default:
-		fmt.Printf("Only MacOS is supported for direct execution of claude. Please start manually:\n  cd \"%s\" && claude\n", repoPath)
+		fmt.Printf("Only MacOS is supported for direct execution of CLIs. Please start manually:\n  cd \"%s\" && %v\n", repoPath, idePath)
 		return false, nil
 	}
+}
+
+func getExtraLaunchParams(idePath string) string {
+	if strings.Contains(strings.ToLower(idePath), "cursor-agent") {
+		return " -f"
+	}
+	return ""
 }
 
 func PathWithTilde(path string) string {
