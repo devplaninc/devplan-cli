@@ -6,9 +6,9 @@ import (
 	"path"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
-	"golang.design/x/clipboard"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/spf13/cobra"
@@ -65,7 +65,11 @@ func runList() {
 		),
 	)
 	check(form.Run())
-	clipboard.Write(clipboard.FmtText, []byte(featurePath))
+
+	if err := clipboard.WriteAll(featurePath); err != nil {
+		out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)
+		os.Exit(1)
+	}
 	fmt.Println(out.Successf("Copied %s to clipboard", out.H(featurePath)))
 }
 
