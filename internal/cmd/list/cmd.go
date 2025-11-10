@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
@@ -45,7 +46,10 @@ func runList() {
 		if len(f.Repos) == 1 {
 			fullNames := f.Repos[0].Repo.FullNames
 			if len(fullNames) > 0 {
-				toCopy = path.Join(toCopy, fullNames[0])
+				parts := strings.Split(fullNames[0], "/")
+				if len(parts) == 2 {
+					toCopy = path.Join(toCopy, parts[1])
+				}
 			}
 		}
 		inputs = append(inputs, huh.NewOption(fmt.Sprintf("%v - %v", f.GetDisplayName(), toCopy), toCopy))
