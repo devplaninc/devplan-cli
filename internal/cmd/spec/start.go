@@ -24,6 +24,7 @@ func createStartCmd() *cobra.Command {
 	var companyID int32
 	var taskID string
 	var ideType string
+	var path string
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start implementation of a task in an AI IDE",
@@ -33,17 +34,22 @@ func createStartCmd() *cobra.Command {
 			docResp, err := cl.GetDocument(companyID, taskID)
 			check(err)
 			task := docResp.GetDocument()
-			details, err := converters.GetTaskDetails(task)
-			check(err)
-			cloneRes, err := gitws.InteractiveClone(ctx, &picker.TargetCmd{
-				CompanyID: companyID,
-				ProjectID: task.GetProjectId(),
-				FeatureID: task.GetParentId(),
-				TaskID:    taskID,
-				IDEName:   ideType,
-				Yes:       true,
-			}, details.GetRepoName())
-			check(err)
+			repoPath := path
+			if repoPath == "" {
+				details, err := converters.GetTaskDetails(task)
+				check(err)
+				cloneRes, err := gitws.InteractiveClone(ctx, &picker.TargetCmd{
+					CompanyID: companyID,
+					ProjectID: task.GetProjectId(),
+					FeatureID: task.GetParentId(),
+					TaskID:    taskID,
+					IDEName:   ideType,
+					Yes:       true,
+				}, details.GetRepoName())
+				check(err)
+				repoPath = cloneRes.RepoPath
+			}
+
 			recipe, err := cl.GetTaskRecipe(companyID, taskID)
 			check(err)
 			executableRecipe := adcp.ExecutableRecipe_builder{
@@ -55,15 +61,16 @@ func createStartCmd() *cobra.Command {
 			r := executable.ForRecipe(executableRecipe)
 			res, err := r.Materialize(ctx)
 			check(err)
-			fmt.Println(out.Hf("Materialized: %+v", cloneRes.RepoPath))
-			check(core.PersistMaterializedResult(ctx, cloneRes.RepoPath, res))
-			_, err = ide.LaunchIDE(ide.IDE(ideType), cloneRes.RepoPath, false)
+			fmt.Println(out.Hf("Materialized: %+v", repoPath))
+			check(core.PersistMaterializedResult(ctx, repoPath, res))
+			_, err = ide.LaunchIDE(ide.IDE(ideType), repoPath, false)
 			check(err)
 		},
 	}
 	cmd.Flags().Int32VarP(&companyID, "company", "c", 0, "Company id for a recipe")
 	cmd.Flags().StringVarP(&taskID, "task", "t", "", "Task id for a recipe")
 	cmd.Flags().StringVarP(&ideType, "ide", "i", "", "IDE to use ('claude', 'cursor-cli' only right now)")
+	cmd.Flags().StringVarP(&path, "path", "p", "", "Path to the repository. If provided, do not clone, load context into the provided path")
 	_ = cmd.MarkFlagRequired("company")
 	_ = cmd.MarkFlagRequired("task")
 	_ = cmd.MarkFlagRequired("ide")

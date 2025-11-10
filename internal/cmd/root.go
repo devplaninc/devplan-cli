@@ -9,6 +9,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
 	"github.com/devplaninc/devplan-cli/internal/cmd/dev"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
+	list_cmd "github.com/devplaninc/devplan-cli/internal/cmd/list"
 	"github.com/devplaninc/devplan-cli/internal/cmd/mcp"
 	"github.com/devplaninc/devplan-cli/internal/cmd/spec"
 	switch_cmd "github.com/devplaninc/devplan-cli/internal/cmd/switch"
@@ -42,6 +43,7 @@ func init() {
 	rootCmd.AddCommand(focus.Cmd)
 	rootCmd.AddCommand(clone.Cmd)
 	rootCmd.AddCommand(switch_cmd.Cmd)
+	rootCmd.AddCommand(list_cmd.Cmd)
 	rootCmd.AddCommand(clean.Cmd)
 	rootCmd.AddCommand(dev.Cmd)
 	rootCmd.AddCommand(mcp.Cmd)

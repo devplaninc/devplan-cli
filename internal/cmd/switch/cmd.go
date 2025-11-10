@@ -22,7 +22,6 @@ func create() *cobra.Command {
 	var ideName string
 	cmd := &cobra.Command{
 		Use:     "switch",
-		Hidden:  true,
 		Aliases: []string{"sw"},
 		Short:   "List and switch between cloned features",
 		Long:    `List all cloned features in the workspace and switch to one of them by opening it in your preferred IDE.`,
