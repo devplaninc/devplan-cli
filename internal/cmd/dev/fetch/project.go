@@ -3,8 +3,8 @@ package fetch
 import (
 	"fmt"
 
-	"github.com/devplaninc/adcp/clients/go/adcp"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
+	"github.com/opensdd/osdd-api/clients/go/osdd"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -23,14 +23,14 @@ func createProjectCmd() *cobra.Command {
 			cl := devplan.NewClient(devplan.Config{})
 			resp, err := cl.GetProjectDocuments(companyID, projectID)
 			check(err)
-			var entries []*adcp.FetchedData
+			var entries []*osdd.FetchedData
 			for _, d := range resp.GetDocuments() {
-				entries = append(entries, adcp.FetchedData_builder{
+				entries = append(entries, osdd.FetchedData_builder{
 					Id:   d.GetId(),
 					Data: d.GetContent(),
 				}.Build())
 			}
-			result := adcp.PrefetchResult_builder{Data: entries}.Build()
+			result := osdd.PrefetchResult_builder{Data: entries}.Build()
 			m := protojson.MarshalOptions{Indent: "  "}
 			fmt.Println(m.Format(result))
 		},

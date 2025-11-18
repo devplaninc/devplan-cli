@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/devplaninc/adcp-core/adcp/core"
-	"github.com/devplaninc/adcp-core/adcp/core/executable"
-	"github.com/devplaninc/adcp/clients/go/adcp"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/converters"
 	"github.com/devplaninc/devplan-cli/internal/utils/gitws"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
+	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
+	"github.com/opensdd/osdd-core/core"
+	"github.com/opensdd/osdd-core/core/executable"
 	"github.com/spf13/cobra"
 )
 
@@ -52,14 +52,17 @@ func createStartCmd() *cobra.Command {
 
 			recipe, err := cl.GetTaskRecipe(companyID, taskID)
 			check(err)
-			executableRecipe := adcp.ExecutableRecipe_builder{
+			executableRecipe := recipes.ExecutableRecipe_builder{
 				Recipe: recipe,
-				EntryPoint: adcp.EntryPoint_builder{
+				EntryPoint: recipes.EntryPoint_builder{
 					IdeType: ideType,
 				}.Build(),
 			}.Build()
 			r := executable.ForRecipe(executableRecipe)
-			res, err := r.Materialize(ctx)
+			genCtx := &core.GenerationContext{
+				ExecRecipe: executableRecipe,
+			}
+			res, err := r.Materialize(ctx, genCtx)
 			check(err)
 			fmt.Println(out.Hf("Materialized: %+v", repoPath))
 			check(core.PersistMaterializedResult(ctx, repoPath, res))

@@ -1,6 +1,9 @@
 package fetch
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +22,7 @@ func create() *cobra.Command {
 
 func check(err error) {
 	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		panic(err)
 	}
 }

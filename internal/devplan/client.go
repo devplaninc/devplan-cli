@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/devplaninc/adcp/clients/go/adcp"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
+	"github.com/devplaninc/devplan-cli/internal/version"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/company"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/services/web/user"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/worklog"
+	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -97,7 +98,7 @@ func (c *Client) GetDevRule(companyID int32, ruleName string) (*company.GetDevRu
 	return result, c.getParsed(devRulePath(companyID, ruleName), result)
 }
 
-func (c *Client) GetIDERecipe(companyID int32) (*adcp.Recipe, error) {
+func (c *Client) GetIDERecipe(companyID int32) (*recipes.Recipe, error) {
 	result := &company.GetDevRecipeResponse{}
 	if err := c.getParsed(devIDERecipePath(companyID), result); err != nil {
 		return nil, err
@@ -105,7 +106,7 @@ func (c *Client) GetIDERecipe(companyID int32) (*adcp.Recipe, error) {
 	return unmarshalRecipe(result.GetJsonRecipe())
 }
 
-func (c *Client) GetTaskRecipe(companyID int32, taskID string) (*adcp.Recipe, error) {
+func (c *Client) GetTaskRecipe(companyID int32, taskID string) (*recipes.Recipe, error) {
 	result := &company.GetTaskRecipeResponse{}
 	if err := c.getParsed(devTaskRecipePath(companyID, taskID), result); err != nil {
 		return nil, err
@@ -121,8 +122,8 @@ func (c *Client) SubmitWorklogItem(companyID int32, item *worklog.WorkLogItem) (
 	return result, c.postParsed(submitWorkLogPath(companyID), req, result)
 }
 
-func unmarshalRecipe(js string) (*adcp.Recipe, error) {
-	recipe := &adcp.Recipe{}
+func unmarshalRecipe(js string) (*recipes.Recipe, error) {
+	recipe := &recipes.Recipe{}
 	u := protojson.UnmarshalOptions{DiscardUnknown: true}
 	return recipe, u.Unmarshal([]byte(js), recipe)
 }
@@ -147,17 +148,15 @@ func (c *Client) getParsed(path string, msg proto.Message) error {
 }
 
 func (c *Client) get(path string) ([]byte, error) {
-	key, err := VerifyAuth()
-	if err != nil {
-		return nil, err
-	}
 	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
 	}
 
-	req.Header.Add("Authorization", "Bearer "+key)
+	if err := c.setHeaders(req); err != nil {
+		return nil, err
+	}
 
 	// Send the request
 	resp, err := c.client.Do(req)
@@ -179,11 +178,6 @@ func (c *Client) get(path string) ([]byte, error) {
 }
 
 func (c *Client) post(path string, req proto.Message) ([]byte, error) {
-	key, err := VerifyAuth()
-	if err != nil {
-		return nil, err
-	}
-
 	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
 
 	m := protojson.MarshalOptions{}
@@ -196,9 +190,9 @@ func (c *Client) post(path string, req proto.Message) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
 	}
-
-	httpReq.Header.Add("Authorization", "Bearer "+key)
-	httpReq.Header.Add("Content-Type", "application/json")
+	if err := c.setHeaders(httpReq); err != nil {
+		return nil, err
+	}
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
@@ -216,6 +210,19 @@ func (c *Client) post(path string, req proto.Message) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read response %s: %w", url, err)
 	}
 	return body, nil
+}
+
+func (c *Client) setHeaders(req *http.Request) error {
+	key, err := VerifyAuth()
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", "Bearer "+key)
+	req.Header.Add("x-devplan-cli-version", version.GetVersion())
+	if req.Method == "POST" {
+		req.Header.Add("Content-Type", "application/json")
+	}
+	return nil
 }
 
 func (c *Client) postParsed(path string, req proto.Message, msg proto.Message) error {

@@ -18,8 +18,6 @@ func create() *cobra.Command {
 		Short:   "Specifications related commands",
 		Aliases: []string{"specs"},
 	}
-	cmd.AddCommand(ideCmd)
-	cmd.AddCommand(taskCmd)
 	cmd.AddCommand(startCmd)
 	return cmd
 }
