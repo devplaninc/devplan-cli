@@ -25,7 +25,7 @@ type InteractiveCloneResult struct {
 	RepoInfo git.RepoInfo
 }
 
-func InteractiveClone(ctx context.Context, targetPicker *picker.TargetCmd, repoName string) (InteractiveCloneResult, error) {
+func InteractiveClone(ctx context.Context, targetPicker *picker.TargetCmd, repoName string, branchName string) (InteractiveCloneResult, error) {
 	target, err := picker.Target(targetPicker)
 	if err != nil {
 		return InteractiveCloneResult{}, err
@@ -37,7 +37,7 @@ func InteractiveClone(ctx context.Context, targetPicker *picker.TargetCmd, repoN
 		return InteractiveCloneResult{}, err
 	}
 
-	repoPath, repo, err := prepareRepository(ctx, targetPicker, repo, target)
+	repoPath, repo, err := prepareRepository(ctx, targetPicker, repo, target, branchName)
 	if err != nil {
 		return InteractiveCloneResult{}, err
 	}
@@ -49,7 +49,7 @@ func InteractiveClone(ctx context.Context, targetPicker *picker.TargetCmd, repoN
 }
 
 func prepareRepository(
-	ctx context.Context, featPicker *picker.TargetCmd, repo git.RepoInfo, target picker.DevTarget,
+	ctx context.Context, featPicker *picker.TargetCmd, repo git.RepoInfo, target picker.DevTarget, branchName string,
 ) (string, git.RepoInfo, error) {
 	repoPath, exists, err := getRepoPath(repo, target)
 	if err != nil {
@@ -57,7 +57,10 @@ func prepareRepository(
 	}
 	displayPath := ide.PathWithTilde(repoPath)
 	if !exists {
-		branchName := sanitizeName(target.GetName(), 30)
+		// Use provided branch name, or fall back to sanitized task name
+		if branchName == "" {
+			branchName = sanitizeName(target.GetName(), 30)
+		}
 		if err := cloneRepository(ctx, repo, repoPath, branchName); err != nil {
 			return "", repo, err
 		}

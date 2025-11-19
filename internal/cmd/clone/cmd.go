@@ -32,7 +32,7 @@ It will clone the repository into the configured workplace directory and set up 
 			ctx := context.Background()
 			assistants, err := picker.AssistantForIDE(targetPicker.IDEName)
 			check(err)
-			cloneRes, err := gitws.InteractiveClone(ctx, targetPicker, repoName)
+			cloneRes, err := gitws.InteractiveClone(ctx, targetPicker, repoName, "")
 			check(err)
 			target := cloneRes.Target
 			gitRepo := cloneRes.RepoInfo

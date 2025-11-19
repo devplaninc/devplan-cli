@@ -34,3 +34,4 @@ bin/
 !.windsurf/rules/devplan_*.md
 **/devplan_current_feature*.md*
 !.windsurf/rules/devplan_current_feature*.md
+/.claude/
