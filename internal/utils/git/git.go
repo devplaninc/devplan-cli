@@ -184,20 +184,21 @@ func LocalBranchExists(repoPath, branchName string) (bool, error) {
 	return true, nil // Branch exists
 }
 
-// RemoteBranchExists checks if a remote branch with the given name exists on origin
+// RemoteBranchExists checks if a remote branch with the given name exists on origin.
+// Uses ls-remote to query the remote directly without fetching the entire repo.
 func RemoteBranchExists(repoPath, branchName string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoPath, "show-ref", "--verify", "--quiet", "refs/remotes/origin/"+branchName)
-	err := cmd.Run()
+	cmd := exec.Command("git", "-C", repoPath, "ls-remote", "--heads", "origin", branchName)
+	output, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			if exitErr.ExitCode() == 1 {
-				return false, nil // Branch doesn't exist
-			}
+			// ls-remote returns exit code 2 for connection errors, etc.
+			return false, fmt.Errorf("failed to query remote: %w", err)
 		}
-		return false, err // Actual error
+		return false, err
 	}
-	return true, nil // Branch exists
+	// ls-remote returns empty output if branch doesn't exist
+	return len(strings.TrimSpace(string(output))) > 0, nil
 }
 
 // FetchRemote fetches updates from a remote to ensure remote refs are up-to-date
@@ -271,16 +272,12 @@ func CheckoutBranch(repoPath, branchName string) error {
 		return fmt.Errorf("invalid branch name: %s", branchName)
 	}
 
-	// Fetch from origin to update remote refs
-	if err := FetchRemote(repoPath, "origin"); err != nil {
-		fmt.Println(out.Warnf("Could not fetch from remote, using local refs: %v", err))
-		// Continue anyway - remote might not be available but local branches still work
-	}
-
-	// Check if remote branch exists
+	// Check if remote branch exists using ls-remote (no fetch required)
 	remoteExists, err := RemoteBranchExists(repoPath, branchName)
 	if err != nil {
-		return fmt.Errorf("failed to check remote branch: %w", err)
+		fmt.Println(out.Warnf("Could not check remote branch, using local refs: %v", err))
+		remoteExists = false
+		// Continue anyway - remote might not be available but local branches still work
 	}
 
 	if remoteExists {
@@ -297,6 +294,10 @@ func CheckoutBranch(repoPath, branchName string) error {
 			}
 			out.Psuccessf("Checked out branch %s\n", out.H(branchName))
 		} else {
+			// Fetch to get the remote branch ref before checkout
+			if err := FetchRemote(repoPath, "origin"); err != nil {
+				return fmt.Errorf("failed to fetch from remote: %w", err)
+			}
 			// Create local tracking branch from remote
 			if err := CheckoutRemoteBranch(repoPath, branchName, "origin"); err != nil {
 				return err

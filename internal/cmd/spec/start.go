@@ -8,7 +8,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/converters"
 	"github.com/devplaninc/devplan-cli/internal/utils/gitws"
-	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
 	"github.com/opensdd/osdd-core/core"
@@ -51,24 +50,27 @@ func createStartCmd() *cobra.Command {
 				repoPath = cloneRes.RepoPath
 			}
 
-			recipe, err := cl.GetTaskRecipe(companyID, taskID)
+			execRecipe, err := cl.GetTaskExecRecipe(companyID, taskID)
 			check(err)
-			executableRecipe := recipes.ExecutableRecipe_builder{
-				Recipe: recipe,
-				EntryPoint: recipes.EntryPoint_builder{
-					IdeType: ideType,
-				}.Build(),
-			}.Build()
-			r := executable.ForRecipe(executableRecipe)
-			genCtx := &core.GenerationContext{
-				ExecRecipe: executableRecipe,
+			if execRecipe.GetEntryPoint() == nil {
+				execRecipe.SetEntryPoint(&recipes.EntryPoint{})
 			}
-			res, err := r.Materialize(ctx, genCtx)
+			execRecipe.GetEntryPoint().SetWorkspace(recipes.WorkspaceConfig_builder{
+				Enabled:  true,
+				Path:     repoPath,
+				Absolute: true,
+			}.Build())
+			if execRecipe.GetEntryPoint().GetIdeType() == "" {
+				execRecipe.GetEntryPoint().SetIdeType(ideType)
+			}
+			genCtx := &core.GenerationContext{
+				ExecRecipe: execRecipe,
+			}
+			fmt.Println(out.Hf("Starting at repo path: %+v", repoPath))
+			r := executable.ForRecipe(execRecipe)
+			_, err = r.Materialize(ctx, genCtx)
 			check(err)
-			fmt.Println(out.Hf("Materialized: %+v", repoPath))
-			check(core.PersistMaterializedResult(ctx, repoPath, res))
-			_, err = ide.LaunchIDE(ide.IDE(ideType), repoPath, false)
-			check(err)
+			check(r.Execute(ctx, genCtx))
 		},
 	}
 	cmd.Flags().Int32VarP(&companyID, "company", "c", 0, "Company id for a recipe")
