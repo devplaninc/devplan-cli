@@ -45,6 +45,10 @@ func devTaskRecipePath(companyID int32, taskID string) string {
 	return fmt.Sprintf("%v/dev/task/%v", companyPath(companyID), taskID)
 }
 
+func devTaskExecRecipePath(companyID int32, taskID string) string {
+	return fmt.Sprintf("%v/dev/task/%v/executable", companyPath(companyID), taskID)
+}
+
 func submitWorkLogPath(companyID int32) string {
 	return fmt.Sprintf("%v/worklog/submit", companyPath(companyID))
 }

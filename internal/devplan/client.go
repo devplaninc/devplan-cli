@@ -114,6 +114,14 @@ func (c *Client) GetTaskRecipe(companyID int32, taskID string) (*recipes.Recipe,
 	return unmarshalRecipe(result.GetJsonRecipe())
 }
 
+func (c *Client) GetTaskExecRecipe(companyID int32, taskID string) (*recipes.ExecutableRecipe, error) {
+	result := &company.GetTaskRecipeResponse{}
+	if err := c.getParsed(devTaskExecRecipePath(companyID, taskID), result); err != nil {
+		return nil, err
+	}
+	return unmarshalExecRecipe(result.GetJsonRecipe())
+}
+
 func (c *Client) SubmitWorklogItem(companyID int32, item *worklog.WorkLogItem) (*company.SubmitWorkLogResponse, error) {
 	result := &company.SubmitWorkLogResponse{}
 	req := company.SubmitWorkLogRequest_builder{
@@ -124,6 +132,12 @@ func (c *Client) SubmitWorklogItem(companyID int32, item *worklog.WorkLogItem) (
 
 func unmarshalRecipe(js string) (*recipes.Recipe, error) {
 	recipe := &recipes.Recipe{}
+	u := protojson.UnmarshalOptions{DiscardUnknown: true}
+	return recipe, u.Unmarshal([]byte(js), recipe)
+}
+
+func unmarshalExecRecipe(js string) (*recipes.ExecutableRecipe, error) {
+	recipe := &recipes.ExecutableRecipe{}
 	u := protojson.UnmarshalOptions{DiscardUnknown: true}
 	return recipe, u.Unmarshal([]byte(js), recipe)
 }

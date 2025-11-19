@@ -14,7 +14,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/opensdd/osdd-api/clients/go v0.5.3
-	github.com/opensdd/osdd-core v0.2.1
+	github.com/opensdd/osdd-core v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.20.1
