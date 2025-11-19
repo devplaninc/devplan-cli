@@ -25,6 +25,7 @@ func createStartCmd() *cobra.Command {
 	var taskID string
 	var ideType string
 	var path string
+	var branchName string
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start implementation of a task in an AI IDE",
@@ -45,7 +46,7 @@ func createStartCmd() *cobra.Command {
 					TaskID:    taskID,
 					IDEName:   ideType,
 					Yes:       true,
-				}, details.GetRepoName())
+				}, details.GetRepoName(), branchName)
 				check(err)
 				repoPath = cloneRes.RepoPath
 			}
@@ -71,6 +72,7 @@ func createStartCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&taskID, "task", "t", "", "Task id for a recipe")
 	cmd.Flags().StringVarP(&ideType, "ide", "i", "", "IDE to use ('claude', 'cursor-cli' only right now)")
 	cmd.Flags().StringVarP(&path, "path", "p", "", "Path to the repository. If provided, do not clone, load context into the provided path")
+	cmd.Flags().StringVarP(&branchName, "branch", "b", "", "Branch to checkout after workspace preparation. If remote with this name exists, it is checked out.")
 	_ = cmd.MarkFlagRequired("company")
 	_ = cmd.MarkFlagRequired("task")
 	_ = cmd.MarkFlagRequired("ide")
