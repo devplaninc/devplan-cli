@@ -2,13 +2,14 @@ package workspace
 
 import (
 	"fmt"
-	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/devplaninc/devplan-cli/internal/utils/git"
-	"github.com/spf13/viper"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	"github.com/spf13/viper"
 )
 
 var defaultWorkspace = path.Join("devplan", "workspace")

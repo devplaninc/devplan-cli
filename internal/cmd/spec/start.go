@@ -56,8 +56,9 @@ func createStartCmd() *cobra.Command {
 				execRecipe.SetEntryPoint(&recipes.EntryPoint{})
 			}
 			execRecipe.GetEntryPoint().SetWorkspace(recipes.WorkspaceConfig_builder{
-				Enabled: true,
-				Path:    repoPath,
+				Enabled:  true,
+				Path:     repoPath,
+				Absolute: true,
 			}.Build())
 			if execRecipe.GetEntryPoint().GetIdeType() == "" {
 				execRecipe.GetEntryPoint().SetIdeType(ideType)
