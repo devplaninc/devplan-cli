@@ -12,6 +12,7 @@ import (
 
 // Domain is used to specify which domain to use (app, beta, local)
 var Domain string
+var InstructionFile string
 
 const (
 	LastCompanyIDKey    = "last_company_id"

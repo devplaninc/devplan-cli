@@ -3,12 +3,14 @@ package spec
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/devplaninc/devplan-cli/internal/devplan"
-	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/converters"
 	"github.com/devplaninc/devplan-cli/internal/utils/gitws"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
 	"github.com/opensdd/osdd-core/core"
 	"github.com/opensdd/osdd-core/core/executable"
@@ -64,13 +66,17 @@ func createStartCmd() *cobra.Command {
 				execRecipe.GetEntryPoint().SetIdeType(ideType)
 			}
 			genCtx := &core.GenerationContext{
-				ExecRecipe: execRecipe,
+				ExecRecipe:    execRecipe,
+				OutputCMDOnly: prefs.InstructionFile != "",
 			}
-			fmt.Println(out.Hf("Starting at repo path: %+v", repoPath))
 			r := executable.ForRecipe(execRecipe)
 			_, err = r.Materialize(ctx, genCtx)
 			check(err)
-			check(r.Execute(ctx, genCtx))
+			result, err := r.Execute(ctx, genCtx)
+			check(err)
+			if cmd := result.LaunchResult.ToExecute; cmd != "" {
+				writeLaunchCmd(cmd)
+			}
 		},
 	}
 	cmd.Flags().Int32VarP(&companyID, "company", "c", 0, "Company id for a recipe")
@@ -82,4 +88,14 @@ func createStartCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("task")
 	_ = cmd.MarkFlagRequired("ide")
 	return cmd
+}
+
+func writeLaunchCmd(cmd string) {
+	if cmd == "" || prefs.InstructionFile == "" {
+		return
+	}
+	dir := filepath.Dir(prefs.InstructionFile)
+	check(os.MkdirAll(dir, 0755))
+	content := fmt.Sprintf("exec: %v\n", cmd)
+	check(os.WriteFile(prefs.InstructionFile, []byte(content), 0644))
 }

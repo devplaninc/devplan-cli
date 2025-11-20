@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/devplaninc/devplan-cli/internal/cmd"
-	"os"
 )
 
 func main() {
