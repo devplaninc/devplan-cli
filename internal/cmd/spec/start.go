@@ -96,6 +96,6 @@ func writeLaunchCmd(cmd string) {
 	}
 	dir := filepath.Dir(prefs.InstructionFile)
 	check(os.MkdirAll(dir, 0755))
-	content := fmt.Sprintf("exec: %v\n", cmd)
+	content := fmt.Sprintf("exec=\"%v\"\n", cmd)
 	check(os.WriteFile(prefs.InstructionFile, []byte(content), 0644))
 }
