@@ -45,33 +45,33 @@ sha256sum * > checksums.txt
 # Archive binaries
 echo "Creating archives..."
 # Linux archives (tar.gz) - auto-update enabled
-tar -czf devplan-linux-amd64.tar.gz devplan-linux-amd64
-tar -czf devplan-linux-arm64.tar.gz devplan-linux-arm64
+tar -czf devplan-linux-amd64.tar.gz devplan-linux-amd64 -C ../wrappers devplan.sh
+tar -czf devplan-linux-arm64.tar.gz devplan-linux-arm64 -C ../wrappers devplan.sh
 
 # macOS archives (tar.gz) - auto-update enabled
-tar -czf devplan-darwin-amd64.tar.gz devplan-darwin-amd64
-tar -czf devplan-darwin-arm64.tar.gz devplan-darwin-arm64
+tar -czf devplan-darwin-amd64.tar.gz devplan-darwin-amd64 -C ../wrappers devplan.sh
+tar -czf devplan-darwin-arm64.tar.gz devplan-darwin-arm64 -C ../wrappers devplan.sh
 
 # Linux archives (tar.gz) - auto-update disabled
-tar -czf devplan-linux-amd64-noautoupdate.tar.gz devplan-linux-amd64-noautoupdate
-tar -czf devplan-linux-arm64-noautoupdate.tar.gz devplan-linux-arm64-noautoupdate
+tar -czf devplan-linux-amd64-noautoupdate.tar.gz devplan-linux-amd64-noautoupdate -C ../wrappers devplan.sh
+tar -czf devplan-linux-arm64-noautoupdate.tar.gz devplan-linux-arm64-noautoupdate -C ../wrappers devplan.sh
 
 # macOS archives (tar.gz) - auto-update disabled
-tar -czf devplan-darwin-amd64-noautoupdate.tar.gz devplan-darwin-amd64-noautoupdate
-tar -czf devplan-darwin-arm64-noautoupdate.tar.gz devplan-darwin-arm64-noautoupdate
+tar -czf devplan-darwin-amd64-noautoupdate.tar.gz devplan-darwin-amd64-noautoupdate -C ../wrappers devplan.sh
+tar -czf devplan-darwin-arm64-noautoupdate.tar.gz devplan-darwin-arm64-noautoupdate -C ../wrappers devplan.sh
 
 # Windows archive (zip)
 if command -v zip >/dev/null 2>&1; then
   # Auto-update enabled
-  zip devplan-windows-amd64.zip devplan-windows-amd64.exe
+  zip -j devplan-windows-amd64.zip devplan-windows-amd64.exe ../wrappers/devplan.ps1
   rm -f devplan-windows-amd64.exe
-  zip devplan-windows-arm64.zip devplan-windows-arm64.exe
+  zip -j devplan-windows-arm64.zip devplan-windows-arm64.exe ../wrappers/devplan.ps1
   rm -f devplan-windows-arm64.exe
   
   # Auto-update disabled
-  zip devplan-windows-amd64-noautoupdate.zip devplan-windows-amd64-noautoupdate.exe
+  zip -j devplan-windows-amd64-noautoupdate.zip devplan-windows-amd64-noautoupdate.exe ../wrappers/devplan.ps1
   rm -f devplan-windows-amd64-noautoupdate.exe
-  zip devplan-windows-arm64-noautoupdate.zip devplan-windows-arm64-noautoupdate.exe
+  zip -j devplan-windows-arm64-noautoupdate.zip devplan-windows-arm64-noautoupdate.exe ../wrappers/devplan.ps1
   rm -f devplan-windows-arm64-noautoupdate.exe
 else
   echo "Warning: zip command not found, skipping Windows archive creation"
