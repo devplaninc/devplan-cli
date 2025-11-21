@@ -1,12 +1,15 @@
 package switch_cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
+	"github.com/opensdd/osdd-core/core/executable"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
@@ -26,14 +29,15 @@ func create() *cobra.Command {
 		Short:   "List and switch between cloned features",
 		Long:    `List all cloned features in the workspace and switch to one of them by opening it in your preferred IDE.`,
 		Run: func(_ *cobra.Command, _ []string) {
-			runSwitch(ideName, false)
+			runSwitch(ideName)
 		},
 	}
 	cmd.Flags().StringVarP(&ideName, "ide", "i", "", "IDE to use (e.g., vscode, intellij, cursor)")
 	return cmd
 }
 
-func runSwitch(ideName string, start bool) {
+func runSwitch(ideName string) {
+	ctx := context.Background()
 	features, err := workspace.ListClonedFeatures()
 	check(err)
 	if len(features) == 0 {
@@ -61,7 +65,7 @@ func runSwitch(ideName string, start bool) {
 
 	if ideName != "" {
 		ideV := ide.IDE(strings.ToLower(ideName))
-		launchSelectedIDE(ideV, featurePath, start)
+		launchSelectedIDE(ctx, ideV, featurePath)
 		return
 	}
 
@@ -89,10 +93,10 @@ func runSwitch(ideName string, start bool) {
 	}
 	selectedIDEName := ideNames[ideIdx]
 
-	launchSelectedIDE(selectedIDEName, featurePath, start)
+	launchSelectedIDE(ctx, selectedIDEName, featurePath)
 }
 
-func launchSelectedIDE(ideName ide.IDE, featurePath string, start bool) {
+func launchSelectedIDE(ctx context.Context, ideName ide.IDE, featurePath string) {
 	// Check for subfolders in the feature path
 	pathToOpen, err := getPathToOpen(featurePath)
 	if err != nil {
@@ -101,12 +105,15 @@ func launchSelectedIDE(ideName ide.IDE, featurePath string, start bool) {
 	}
 
 	fmt.Printf("Opening %s in %s...\n", out.H(pathToOpen), out.Hf("%v", ideName))
-	launched, err := ide.LaunchIDE(ideName, pathToOpen, start)
-	if err != nil {
-		fmt.Println(out.Failf("Failed to launch IDE: %v", err))
-		os.Exit(1)
-	}
-	if launched {
+	outOnly := prefs.InstructionFile != ""
+	res, err := executable.LaunchIDE(ctx, executable.LaunchParams{
+		IDE:           string(ideName),
+		RepoPath:      pathToOpen,
+		OutputCMDOnly: outOnly,
+	})
+	check(err)
+	check(ide.WriteLaunchResult(res))
+	if !outOnly {
 		fmt.Println(out.Successf("Successfully opened %s in %s", pathToOpen, ideName))
 	}
 }

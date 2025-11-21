@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
+	"github.com/opensdd/osdd-core/core/executable"
 )
 
 // LaunchIDE launches the specified IDE at the given repository path
@@ -87,4 +90,23 @@ func PathWithTilde(path string) string {
 		return "~/" + strings.TrimPrefix(path, pref)
 	}
 	return path
+}
+
+func WriteLaunchResult(res executable.LaunchResult) error {
+	if cmd := res.ToExecute; cmd != "" {
+		return WriteLaunchCmd(cmd)
+	}
+	return nil
+}
+
+func WriteLaunchCmd(cmd string) error {
+	if cmd == "" || prefs.InstructionFile == "" {
+		return nil
+	}
+	dir := filepath.Dir(prefs.InstructionFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	content := fmt.Sprintf("exec=\"%v\"\n", cmd)
+	return os.WriteFile(prefs.InstructionFile, []byte(content), 0644)
 }

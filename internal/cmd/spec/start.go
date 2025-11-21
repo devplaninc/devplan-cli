@@ -2,13 +2,11 @@ package spec
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/utils/converters"
 	"github.com/devplaninc/devplan-cli/internal/utils/gitws"
+	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
@@ -74,9 +72,7 @@ func createStartCmd() *cobra.Command {
 			check(err)
 			result, err := r.Execute(ctx, genCtx)
 			check(err)
-			if cmd := result.LaunchResult.ToExecute; cmd != "" {
-				writeLaunchCmd(cmd)
-			}
+			check(ide.WriteLaunchResult(result.LaunchResult))
 		},
 	}
 	cmd.Flags().Int32VarP(&companyID, "company", "c", 0, "Company id for a recipe")
@@ -88,14 +84,4 @@ func createStartCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("task")
 	_ = cmd.MarkFlagRequired("ide")
 	return cmd
-}
-
-func writeLaunchCmd(cmd string) {
-	if cmd == "" || prefs.InstructionFile == "" {
-		return
-	}
-	dir := filepath.Dir(prefs.InstructionFile)
-	check(os.MkdirAll(dir, 0755))
-	content := fmt.Sprintf("exec=\"%v\"\n", cmd)
-	check(os.WriteFile(prefs.InstructionFile, []byte(content), 0644))
 }
