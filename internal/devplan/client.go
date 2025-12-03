@@ -108,7 +108,7 @@ func (c *Client) GetIDERecipe(companyID int32) (*recipes.Recipe, error) {
 
 func (c *Client) GetTaskRecipe(companyID int32, taskID string) (*recipes.Recipe, error) {
 	result := &company.GetTaskRecipeResponse{}
-	if err := c.getParsed(devTaskRecipePath(companyID, taskID), result); err != nil {
+	if err := c.getParsed(devTaskPath(companyID, taskID), result); err != nil {
 		return nil, err
 	}
 	return unmarshalRecipe(result.GetJsonRecipe())
@@ -145,6 +145,51 @@ func unmarshalExecRecipe(js string) (*recipes.ExecutableRecipe, error) {
 func (c *Client) GetRepoSummaries(companyID int32) (*company.GetRepoSummariesResponse, error) {
 	result := &company.GetRepoSummariesResponse{}
 	return result, c.getParsed(repoSummariesPath(companyID), result)
+}
+
+// GetTaskSpecs retrieves task specs.
+func (c *Client) GetTaskSpecs(companyID int32, taskID string) (*company.GetTaskSpecsResponse, error) {
+	response := &company.GetTaskSpecsResponse{}
+	err := c.getParsed(taskSpecsPath(companyID, taskID), response)
+	return response, err
+}
+
+// UploadTaskSpec uploads a spec for atask
+func (c *Client) UploadTaskSpec(companyID int32, taskID string, req *company.UploadSpecRequest) error {
+	_, err := c.post(taskSpecsPath(companyID, taskID), req)
+	return err
+}
+
+func (c *Client) put(path string, data io.Reader, contentType string) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
+
+	httpReq, err := http.NewRequest("PUT", url, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
+	}
+	if err := c.setHeaders(httpReq); err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", contentType)
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to put %s: %w", url, err)
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response %s: %w", url, err)
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("failed to put %s: %s [%v]: %s", url, resp.Status, resp.StatusCode, string(body))
+	}
+
+	return body, nil
 }
 
 func (c *Client) getParsed(path string, msg proto.Message) error {

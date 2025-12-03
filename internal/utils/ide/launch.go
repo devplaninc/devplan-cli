@@ -107,6 +107,6 @@ func WriteLaunchCmd(cmd string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-	content := fmt.Sprintf("exec=\"%v\"\n", cmd)
+	content := fmt.Sprintf("exec=%v\n", cmd)
 	return os.WriteFile(prefs.InstructionFile, []byte(content), 0644)
 }
