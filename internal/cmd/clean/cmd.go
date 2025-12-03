@@ -2,11 +2,12 @@ package clean
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (

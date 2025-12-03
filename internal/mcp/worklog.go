@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/devplan"
@@ -22,14 +23,14 @@ type WorkLogReportInput struct {
 type WorkLogReportOutput struct {
 }
 
-func reportWorkLog(_ context.Context, _ *mcp.CallToolRequest, input WorkLogReportInput) (*mcp.CallToolResult, WorkLogReportOutput, error) {
+func (s *Server) reportWorkLog(ctx context.Context, _ *mcp.CallToolRequest, input WorkLogReportInput) (*mcp.CallToolResult, WorkLogReportOutput, error) {
 	cl := devplan.NewClient(devplan.Config{})
 	wlType := getWorkloadType(input.Type)
 	customType := ""
 	if wlType == worklog.WorkLogType_WORK_LOG_TYPE_UNSPECIFIED {
 		customType = input.Type
 	}
-	_, err := cl.SubmitWorklogItem(input.CompanyID, worklog.WorkLogItem_builder{
+	item := worklog.WorkLogItem_builder{
 		Message:           input.Message,
 		CompanyId:         &input.CompanyID,
 		TaskId:            &input.TaskID,
@@ -38,7 +39,16 @@ func reportWorkLog(_ context.Context, _ *mcp.CallToolRequest, input WorkLogRepor
 		Stage:             input.Stage,
 		ActionDescription: input.ActionDescription,
 		AgentName:         input.AgentName,
-	}.Build())
+	}.Build()
+	_, err := cl.SubmitWorklogItem(input.CompanyID, item)
+	slog.Info("Reporting worklog item", "item", item)
+
+	// Initialize syncer lazily on first MCP call with valid company/task IDs
+	if input.CompanyID > 0 && input.TaskID != "" {
+		// Note: We don't fail the worklog submission if syncer initialization fails
+		_ = s.addSyncer(ctx, input.CompanyID, input.TaskID)
+	}
+
 	return nil, WorkLogReportOutput{}, err
 }
 

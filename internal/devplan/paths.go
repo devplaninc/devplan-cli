@@ -1,6 +1,8 @@
 package devplan
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const apiPath = "api/v1"
 const selfPath = apiPath + "/user"
@@ -41,7 +43,7 @@ func devIDERecipePath(companyID int32) string {
 	return fmt.Sprintf("%v/dev/ide", companyPath(companyID))
 }
 
-func devTaskRecipePath(companyID int32, taskID string) string {
+func devTaskPath(companyID int32, taskID string) string {
 	return fmt.Sprintf("%v/dev/task/%v", companyPath(companyID), taskID)
 }
 
@@ -59,4 +61,8 @@ func groupPath(companyID int32, groupID string) string {
 
 func repoSummariesPath(companyID int32) string {
 	return fmt.Sprintf("%v/repo-summaries", companyPath(companyID))
+}
+
+func taskSpecsPath(companyID int32, taskID string) string {
+	return fmt.Sprintf("%v/specs", devTaskPath(companyID, taskID))
 }

@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -18,7 +19,9 @@ func create() *cobra.Command {
 		Use:   "mcp",
 		Short: "Devplan MCP server",
 		Run: func(_ *cobra.Command, _ []string) {
-			check(mcp.RunServer())
+			ctx := context.Background()
+			server := mcp.NewServer()
+			check(server.Run(ctx))
 		},
 	}
 	return cmd

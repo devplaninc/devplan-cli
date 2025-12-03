@@ -24,17 +24,27 @@ const (
 	apiKeyConfig = "apikey"
 )
 
-func init() {
+func GetConfigDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic(fmt.Errorf("failed to get home directory: %w", err))
+		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 	configDir := filepath.Join(home, ".devplan")
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		err = os.MkdirAll(configDir, 0755)
 		if err != nil {
-			panic(fmt.Errorf("failed to create config directory: %w", err))
+			return "", fmt.Errorf("failed to create config directory: %w", err)
 		}
+	} else if err != nil {
+		return "", fmt.Errorf("cannot read config directory: %w", err)
+	}
+	return configDir, nil
+}
+
+func init() {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		panic(err)
 	}
 	configPath := filepath.Join(configDir, "config.json")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {

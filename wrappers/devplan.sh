@@ -67,9 +67,9 @@ while IFS= read -r line || [ -n "$line" ]; do
 
     # Check if line matches exec: "..." pattern
     # Extract content between quotes after "exec:"
-    if echo "$line" | grep -q '^[[:space:]]*exec=[[:space:]]*"'; then
+    if echo "$line" | grep -q '^[[:space:]]*exec=[[:space:]]*'; then
         # Extract the command from between the quotes
-        EXEC_CMD=$(echo "$line" | sed 's/^[[:space:]]*exec=[[:space:]]*"\([^"]*\)".*/\1/')
+        EXEC_CMD=$(echo "$line" | sed 's/^[[:space:]]*exec=[[:space:]]*\(.*\)/\1/')
         break
     fi
 
