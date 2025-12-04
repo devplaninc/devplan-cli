@@ -56,11 +56,17 @@ func (s *Syncer) uploadSpec(ctx context.Context, spec Spec) error {
 // runSync executes one sync run and returns the result
 func (s *Syncer) runSync(ctx context.Context) *SyncResult {
 	slog.Debug("Running sync")
-	defer slog.Debug("Sync finished")
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Sync panicked", "panic", r)
+		}
+		slog.Debug("Sync finished")
+	}()
 	result := &SyncResult{}
 
 	// Discover local specs
 	localSpecs, err := DiscoverTaskSpecs(s.taskDir)
+	slog.Debug("Specs found", "specs", localSpecs)
 	if err != nil {
 		result.Failed = 1
 		result.Errors = append(result.Errors, err)

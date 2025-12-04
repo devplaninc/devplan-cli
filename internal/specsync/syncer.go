@@ -39,6 +39,7 @@ func NewSyncer(client Client, companyID int32, taskID, taskDir string, interval 
 func (s *Syncer) TriggerOnce(_ context.Context) *SyncResult {
 	// Try to acquire the run lock
 	if !s.runMu.TryLock() {
+		slog.Debug("Sync already in progress, skipping")
 		// Another sync is in progress, skip
 		return &SyncResult{Skipped: -1} // -1 indicates skipped due to concurrent run
 	}

@@ -70,8 +70,9 @@ func (s *Server) addSyncer(ctx context.Context, companyID int32, taskID string) 
 	interval := specsync.DefaultSyncInterval
 	syncer := specsync.NewSyncer(adapter, companyID, taskID, fullTaskDir, interval)
 	s.syncers[key] = syncer
-	go syncer.RunBackground(ctx)
-	go syncer.TriggerOnce(ctx)
+	syncerCtx := context.Background()
+	go syncer.RunBackground(syncerCtx)
+	go syncer.TriggerOnce(syncerCtx)
 	slog.Info("Started syncer", "companyID", companyID, "taskID", taskID)
 	return nil
 }
