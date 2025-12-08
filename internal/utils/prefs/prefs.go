@@ -100,7 +100,10 @@ func GetLastGitProtocol() GitProtocol {
 	if protocol == string(SSH) {
 		return SSH
 	}
-	return HTTPS
+	if protocol == string(HTTPS) {
+		return HTTPS
+	}
+	return ""
 }
 
 // SetLastGitProtocol saves the last used git protocol to config

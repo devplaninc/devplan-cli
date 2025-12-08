@@ -187,10 +187,10 @@ func cloneGithubRepo(ctx context.Context, repo git.RepoInfo, path string, branch
 	httpsURL := fmt.Sprintf("https://github.com/%s", repo.GetFullName())
 	sshURL := fmt.Sprintf("git@github.com:%s.git", repo.GetFullName())
 	var urls []urlDef
-	if protocol == prefs.SSH {
-		urls = []urlDef{{sshURL, prefs.SSH}, {httpsURL, prefs.HTTPS}}
-	} else {
+	if protocol == prefs.HTTPS {
 		urls = []urlDef{{httpsURL, prefs.HTTPS}, {sshURL, prefs.SSH}}
+	} else {
+		urls = []urlDef{{sshURL, prefs.SSH}, {httpsURL, prefs.HTTPS}}
 	}
 	var err error
 	for _, url := range urls {
@@ -214,6 +214,13 @@ func cloneGithubRepo(ctx context.Context, repo git.RepoInfo, path string, branch
 func tryRepoClone(ctx context.Context, url string, path string, branchToCreate string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	authMessage := ""
+	if strings.Contains(url, "github.com") {
+		authMessage = out.Hf("If you experience authentication issue, use 'gh auth login' command to initialize auth")
+	}
+	if authMessage != "" {
+		fmt.Println(authMessage)
+	}
 	sp := spinner.New(
 		fmt.Sprintf("Cloning repository %s into %s", out.H(url), out.H(path)),
 		fmt.Sprintf("Repository %v cloned successfully to %v", out.H(url), out.H(path)),
