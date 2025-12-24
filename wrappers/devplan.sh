@@ -85,7 +85,9 @@ fi
 # Execute the extracted command
 set +e
 
-sh -c "Starting: ${EXEC_CMD}"
+echo "Starting: ${EXEC_CMD}"
+
+sh -c "${EXEC_CMD}"
 
 EXEC_EXIT_CODE=$?
 set -e
