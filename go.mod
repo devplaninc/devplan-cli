@@ -13,8 +13,8 @@ require (
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/manifoldco/promptui v0.9.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
-	github.com/opensdd/osdd-api/clients/go v0.5.5
-	github.com/opensdd/osdd-core v0.7.1
+	github.com/opensdd/osdd-api/clients/go v0.5.8
+	github.com/opensdd/osdd-core v0.7.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0

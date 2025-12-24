@@ -145,10 +145,10 @@ github.com/muesli/termenv v0.16.0 h1:S5AlUN9dENB57rsbnkPyfdGuWIlkmzJjbFf0Tf5FWUc
 github.com/muesli/termenv v0.16.0/go.mod h1:ZRfOIKPFDYQoDFF4Olj7/QJbW60Ol/kL1pU3VfY/Cnk=
 github.com/onsi/gomega v1.34.1 h1:EUMJIKUjM8sKjYbtxQI9A4z2o+rruxnzNvpknOXie6k=
 github.com/onsi/gomega v1.34.1/go.mod h1:kU1QgUvBDLXBJq618Xvm2LUX6rSAfRaFRTcdOeDLwwY=
-github.com/opensdd/osdd-api/clients/go v0.5.5 h1:ZgpaVEJx3VuElTRUYsxMU/XxQuvY99zjSXEhkZUQoZ4=
-github.com/opensdd/osdd-api/clients/go v0.5.5/go.mod h1:0L6wj1ps4wBPLjtKyF5vsGRiKZOT+gAG3I71KgPIxBk=
-github.com/opensdd/osdd-core v0.7.1 h1:rEBPUU7/YlH9995MmRBVymr4RiC8azMjV+WnNJpbxY0=
-github.com/opensdd/osdd-core v0.7.1/go.mod h1:595miv1UtTr66vz7cL+fwkXo2PhuNVCeXzzWP74ZkjQ=
+github.com/opensdd/osdd-api/clients/go v0.5.8 h1:19483eGC185hodjARegBb9qIDm8QYRVM9u2ZjXbdxCA=
+github.com/opensdd/osdd-api/clients/go v0.5.8/go.mod h1:0L6wj1ps4wBPLjtKyF5vsGRiKZOT+gAG3I71KgPIxBk=
+github.com/opensdd/osdd-core v0.7.3 h1:Dot1EQQFqvarBbynvx5jLvlexVvLNQGpG/NlJAMLXqs=
+github.com/opensdd/osdd-core v0.7.3/go.mod h1:brn6h4UZr9xXx8pIeN2XpMvNkygixPdIaz5/ofyh6Ag=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=
 github.com/pelletier/go-toml/v2 v2.2.4/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pjbgf/sha1cd v0.5.0 h1:a+UkboSi1znleCDUNT3M5YxjOnN1fz2FhN48FlwCxs0=
