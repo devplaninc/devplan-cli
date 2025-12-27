@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
@@ -97,66 +96,18 @@ func runSwitch(ideName string) {
 }
 
 func launchSelectedIDE(ctx context.Context, ideName ide.IDE, featurePath string) {
-	// Check for subfolders in the feature path
-	pathToOpen, err := getPathToOpen(featurePath)
-	if err != nil {
-		fmt.Println(out.Failf("%v", err))
-		os.Exit(1)
-	}
-
-	fmt.Printf("Opening %s in %s...\n", out.H(pathToOpen), out.Hf("%v", ideName))
+	// With worktrees, each feature directory is a worktree that can be directly opened
+	fmt.Printf("Opening %s in %s...\n", out.H(featurePath), out.Hf("%v", ideName))
 	outOnly := prefs.InstructionFile != ""
 	res, err := executable.LaunchIDE(ctx, executable.LaunchParams{
 		IDE:           string(ideName),
-		RepoPath:      pathToOpen,
+		RepoPath:      featurePath,
 		OutputCMDOnly: outOnly,
 	})
 	check(err)
 	check(ide.WriteLaunchResult(res))
 	if !outOnly {
-		fmt.Println(out.Successf("Successfully opened %s in %s", pathToOpen, ideName))
-	}
-}
-
-// getPathToOpen checks for subfolders in the given path and returns the path to open in the IDE.
-// If there are multiple subfolders, it asks the user to select one.
-// If there is exactly one subfolder, it returns that subfolder path.
-// If there are no subfolders, it returns an error.
-func getPathToOpen(dirPath string) (string, error) {
-	entries, err := os.ReadDir(dirPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read directory %s: %v", dirPath, err)
-	}
-
-	// Filter for directories only
-	var subfolders []os.DirEntry
-	for _, entry := range entries {
-		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
-			subfolders = append(subfolders, entry)
-		}
-	}
-
-	switch len(subfolders) {
-	case 0:
-		return "", fmt.Errorf("no subfolders found in %s", dirPath)
-	case 1:
-		return filepath.Join(dirPath, subfolders[0].Name()), nil
-	default:
-		var folderNames []string
-		for _, folder := range subfolders {
-			folderNames = append(folderNames, folder.Name())
-		}
-
-		prompt := promptui.Select{
-			Label: "Select a folder to open",
-			Items: folderNames,
-		}
-		idx, _, err := prompt.Run()
-		if err != nil {
-			return "", fmt.Errorf("subfolder selection failed: %v", err)
-		}
-
-		return filepath.Join(dirPath, subfolders[idx].Name()), nil
+		fmt.Println(out.Successf("Successfully opened %s in %s", featurePath, ideName))
 	}
 }
 

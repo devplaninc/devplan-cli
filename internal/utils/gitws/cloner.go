@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
+	"github.com/devplaninc/devplan-cli/internal/utils/metadata"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
@@ -51,42 +51,105 @@ func InteractiveClone(ctx context.Context, targetPicker *picker.TargetCmd, repoN
 func prepareRepository(
 	ctx context.Context, featPicker *picker.TargetCmd, repo git.RepoInfo, target picker.DevTarget, branchName string,
 ) (string, git.RepoInfo, error) {
-	repoPath, exists, err := getRepoPath(repo, target)
-	if err != nil {
-		return "", repo, err
-	}
-	displayPath := ide.PathWithTilde(repoPath)
-	if !exists {
-		// Use provided branch name, or fall back to sanitized task name
-		if branchName == "" {
-			branchName = sanitizeName(target.GetName(), 30)
-		}
-		if err := cloneRepository(ctx, repo, repoPath, branchName); err != nil {
+	// Get project name and repo name
+	project := target.ProjectWithDocs.GetProject()
+	projectName := sanitizeName(project.GetTitle(), 30)
+
+	// Extract repo name from full name (e.g., "owner/repo" -> "repo")
+	repoFullName := repo.GetFullName()
+	parts := strings.Split(repoFullName, "/")
+	repoName := parts[len(parts)-1]
+
+	mainRepoPath := workspace.GetMainRepoPath(projectName, repoName)
+
+	// Ensure the main repository exists
+	mainRepoExists := workspace.MainRepoExists(projectName, repoName)
+	if !mainRepoExists {
+		// Clone the main repository with a branch based on project name
+		projectBranchName := sanitizeName(project.GetTitle(), 30)
+		if err := cloneMainRepository(ctx, repo, mainRepoPath, projectBranchName); err != nil {
 			return "", repo, err
 		}
-		return repoPath, git.EnsureRepoPath(repoPath), nil
+
+		// Write metadata for the main repository
+		mainMeta := metadata.Metadata{
+			ProjectID:   project.GetId(),
+			ProjectName: project.GetTitle(),
+			RepoURL:     repo.URLs[0],
+			RepoName:    repo.GetFullName(),
+		}
+		if err := metadata.EnsureMetadataSetup(mainRepoPath, mainMeta); err != nil {
+			return "", repo, fmt.Errorf("failed to setup main repo metadata: %w", err)
+		}
 	}
-	if len(featPicker.IDEName) == 0 {
-		return "", git.RepoInfo{}, fmt.Errorf("repository already exists and no IDE to launch selected")
+
+	// Determine the worktree path and branch name
+	taskName := sanitizeName(target.GetName(), 30)
+	worktreePath := workspace.GetWorktreePath(projectName, taskName)
+
+	// Use provided branch name, or fall back to sanitized task/feature name
+	if branchName == "" {
+		branchName = taskName
 	}
-	ideName := ide.IDE(featPicker.IDEName)
-	if featPicker.Yes {
-		out.Psuccessf("Repository %s already exists. Opening it in %v.\n", out.H(displayPath), out.H(ideName))
-		return repoPath, git.EnsureRepoPath(repoPath), nil
+
+	// Check if worktree already exists
+	if _, err := os.Stat(worktreePath); err == nil {
+		// Worktree exists
+		displayPath := ide.PathWithTilde(worktreePath)
+		if len(featPicker.IDEName) == 0 {
+			return "", git.RepoInfo{}, fmt.Errorf("worktree already exists and no IDE to launch selected")
+		}
+		ideName := ide.IDE(featPicker.IDEName)
+		if featPicker.Yes {
+			out.Psuccessf("Worktree %s already exists. Opening it in %v.\n", out.H(displayPath), out.H(ideName))
+			return worktreePath, git.EnsureRepoPath(worktreePath), nil
+		}
+		p := promptui.Prompt{
+			Label: fmt.Sprintf("Worktree %s already exists. Do you want to open it in %v",
+				displayPath, ideName),
+			IsConfirm: true,
+		}
+		resp, err := p.Run()
+		if err != nil {
+			return "", repo, err
+		}
+		if resp != "y" {
+			return "", git.RepoInfo{}, fmt.Errorf("worktree already exists, selected not to open it")
+		}
+		return worktreePath, git.EnsureRepoPath(worktreePath), nil
 	}
-	p := promptui.Prompt{
-		Label: fmt.Sprintf("Repository %s already exists. Do you want to open it in %v",
-			displayPath, ideName),
-		IsConfirm: true,
-	}
-	resp, err := p.Run()
-	if err != nil {
+
+	// Create the worktree
+	if err := createWorktree(ctx, mainRepoPath, worktreePath, branchName); err != nil {
 		return "", repo, err
 	}
-	if resp != "y" {
-		return "", git.RepoInfo{}, fmt.Errorf("repository already exists, selected not to open it")
+
+	// Write metadata for the worktree
+	worktreeMeta := metadata.Metadata{
+		ProjectID:   project.GetId(),
+		ProjectName: project.GetTitle(),
+		RepoURL:     repo.URLs[0],
+		RepoName:    repo.GetFullName(),
 	}
-	return repoPath, git.EnsureRepoPath(repoPath), nil
+
+	// Add task information if available
+	if task := target.Task; task != nil {
+		worktreeMeta.TaskID = task.GetId()
+		worktreeMeta.TaskName = task.GetTitle()
+	} else if feature := target.SpecificFeature; feature != nil {
+		worktreeMeta.TaskID = feature.GetId()
+		worktreeMeta.TaskName = feature.GetTitle()
+	}
+
+	if err := metadata.EnsureMetadataSetup(worktreePath, worktreeMeta); err != nil {
+		return "", repo, fmt.Errorf("failed to setup worktree metadata: %w", err)
+	}
+
+	repoInfo, err := git.RepoAtPath(worktreePath)
+	if err != nil {
+		return "", repo, fmt.Errorf("failed to verify worktree as git repository: %w", err)
+	}
+	return worktreePath, repoInfo, nil
 }
 
 func confirmRepository(repoName string, companyID int32) (git.RepoInfo, error) {
@@ -140,20 +203,7 @@ func confirmRepository(repoName string, companyID int32) (git.RepoInfo, error) {
 	return byName[selectedRepoName], nil
 }
 
-func getRepoPath(repo git.RepoInfo, target picker.DevTarget) (string, bool, error) {
-	dirName := sanitizeName(target.GetName(), 30)
-	repoParent := filepath.Join(workspace.GetFeaturesPath(), fmt.Sprintf("%s", dirName))
-	repoFullName := repo.GetFullName()
-	parts := strings.Split(repoFullName, "/")
-	repoName := parts[len(parts)-1]
-	repoPath := filepath.Join(repoParent, repoName)
-	if _, err := os.Stat(repoPath); err == nil {
-		return repoPath, true, nil
-	}
-	return repoPath, false, nil
-}
-
-func cloneRepository(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
+func cloneMainRepository(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
 	for _, url := range repo.URLs {
 		if strings.Contains(strings.ToLower(url), "github.com") {
 			return cloneGithubRepo(ctx, repo, path, branchToCreate)
@@ -163,6 +213,17 @@ func cloneRepository(ctx context.Context, repo git.RepoInfo, path string, branch
 		}
 	}
 	return fmt.Errorf("unsupported repository URL: %+v", repo)
+}
+
+func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName string) error {
+	err := git.CreateWorktree(mainRepoPath, worktreePath, branchName)
+	if err != nil {
+		_ = os.RemoveAll(worktreePath)
+		return fmt.Errorf("failed to create worktree: %w", err)
+	}
+
+	out.Psuccessf("Worktree %s created successfully\n", out.H(worktreePath))
+	return nil
 }
 
 func cloneBitbucketRepo(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {

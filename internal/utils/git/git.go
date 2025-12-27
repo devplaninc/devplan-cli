@@ -6,11 +6,15 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+)
+
+var (
+	ErrRepositoryNotExists = errors.New("repository does not exist")
 )
 
 type RepoInfo struct {
@@ -32,7 +36,7 @@ func (r RepoInfo) GetFullName() string {
 }
 
 func IsNotInRepoErr(err error) bool {
-	return errors.Is(err, git.ErrRepositoryNotExists)
+	return errors.Is(err, ErrRepositoryNotExists)
 }
 
 func EnsureRepoPath(path string) RepoInfo {
@@ -41,13 +45,9 @@ func EnsureRepoPath(path string) RepoInfo {
 		return repo
 	}
 	if !IsNotInRepoErr(err) {
-		out.Failf("Failed to get current repository: %v\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("Failed to get current repository: %v", err))
 	}
-	out.Pfail("Not in a git repository\n")
-	fmt.Printf("Please, clone a repository first or navigate to the cloned one and run the command from inside the git repository.\n")
-	os.Exit(1)
-	return RepoInfo{}
+	panic("Not in a git repository. Please clone a repository first or navigate to the cloned one and run the command from inside the git repository.")
 }
 
 func EnsureInRepo() RepoInfo {
@@ -157,15 +157,13 @@ func SetupBranch(repoPath, branchName string) error {
 }
 
 func GetRoot() (string, error) {
-	repo, err := git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
+	// Use git command to get the root directory (works with worktrees)
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.Output()
 	if err != nil {
 		return "", err
 	}
-	wt, err := repo.Worktree()
-	if err != nil {
-		return "", err
-	}
-	return wt.Filesystem.Root(), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 // LocalBranchExists checks if a local branch with the given name exists
@@ -330,22 +328,138 @@ func CheckoutBranch(repoPath, branchName string) error {
 	return nil
 }
 
+// WorktreeInfo contains information about a git worktree
+type WorktreeInfo struct {
+	Path   string
+	Branch string
+	Commit string
+}
+
+// CreateWorktree creates a new git worktree at the specified path with the given branch name
+func CreateWorktree(repoPath, worktreePath, branchName string) error {
+	// Check if worktree path already exists
+	if _, err := os.Stat(worktreePath); err == nil {
+		return fmt.Errorf("worktree path already exists: %s", worktreePath)
+	}
+
+	// Check if branch exists locally or remotely
+	localExists, err := LocalBranchExists(repoPath, branchName)
+	if err != nil {
+		return fmt.Errorf("failed to check local branch: %w", err)
+	}
+
+	remoteExists, err := RemoteBranchExists(repoPath, branchName)
+	if err != nil {
+		// If we can't check remote, continue with local-only mode
+		remoteExists = false
+	}
+
+	var cmd *exec.Cmd
+	if localExists || remoteExists {
+		// Checkout existing branch
+		cmd = exec.Command("git", "-C", repoPath, "worktree", "add", worktreePath, branchName)
+	} else {
+		// Create new branch
+		cmd = exec.Command("git", "-C", repoPath, "worktree", "add", "-b", branchName, worktreePath)
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to create worktree: %s", strings.TrimSpace(string(output)))
+	}
+
+	return nil
+}
+
+// RemoveWorktree removes a worktree at the specified path
+func RemoveWorktree(repoPath, worktreePath string) error {
+	cmd := exec.Command("git", "-C", repoPath, "worktree", "remove", worktreePath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to remove worktree: %s", strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+// PruneWorktrees cleans up worktree administrative files
+func PruneWorktrees(repoPath string) error {
+	cmd := exec.Command("git", "-C", repoPath, "worktree", "prune")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to prune worktrees: %s", strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+// IsWorktree checks if the given path is a git worktree (not the main repository)
+func IsWorktree(path string) (bool, error) {
+	gitDirPath := filepath.Join(path, ".git")
+
+	// Check if .git exists
+	info, err := os.Stat(gitDirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	// If .git is a file (not a directory), it's a worktree
+	if !info.IsDir() {
+		return true, nil
+	}
+
+	// If .git is a directory, it could be the main repo
+	// Check if it's a worktree by looking for the worktree admin files
+	cmd := exec.Command("git", "-C", path, "rev-parse", "--git-common-dir")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+
+	commonDir := strings.TrimSpace(string(output))
+	gitDir := filepath.Join(path, ".git")
+
+	// If common-dir is different from .git, it's a worktree
+	return commonDir != gitDir && commonDir != ".", nil
+}
+
+// GetMainRepoPath returns the path to the main repository from a worktree
+func GetMainRepoPath(worktreePath string) (string, error) {
+	cmd := exec.Command("git", "-C", worktreePath, "rev-parse", "--git-common-dir")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get common git dir: %w", err)
+	}
+
+	commonDir := strings.TrimSpace(string(output))
+
+	// The common dir is the .git directory of the main repo
+	// Get the parent directory
+	mainRepoPath := filepath.Dir(commonDir)
+
+	return mainRepoPath, nil
+}
+
 func getRepoURLs(path string) ([]string, error) {
-	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	// Use git command directly to get remote URL (works with worktrees)
+	cmd := exec.Command("git", "-C", path, "remote", "get-url", "origin")
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			// Check if it's a "not a git repository" error
+			if strings.Contains(string(exitErr.Stderr), "not a git repository") {
+				return nil, ErrRepositoryNotExists
+			}
+		}
+		return nil, fmt.Errorf("failed to get remote URL: %w", err)
 	}
 
-	// Get the remote named "origin"
-	remote, err := repo.Remote("origin")
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the URL of the remote
-	urls := remote.Config().URLs
-	if len(urls) == 0 {
+	url := strings.TrimSpace(string(output))
+	if url == "" {
 		return nil, fmt.Errorf("no remote URL found")
 	}
-	return urls, nil
+
+	return []string{url}, nil
 }

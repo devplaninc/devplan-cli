@@ -1,0 +1,8 @@
+{
+  "taskId": "task-123",
+  "taskName": "Add user authentication",
+  "projectId": "proj-456",
+  "projectName": "My Project",
+  "repoUrl": "https://github.com/devplaninc/webapp.git",
+  "repoName": "devplaninc/webapp"
+}
