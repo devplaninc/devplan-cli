@@ -24,8 +24,7 @@ func GetPath() string {
 		// Use default directory in user's home
 		home, err := os.UserHomeDir()
 		if err != nil {
-			out.Pfailf("Failed to get user home directory: %v\n", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("Failed to get user home directory: %v", err))
 		}
 		workspaceDir = filepath.Join(home, defaultWorkspace)
 
@@ -42,8 +41,7 @@ func GetPath() string {
 	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
 		err = os.MkdirAll(workspaceDir, 0755)
 		if err != nil {
-			out.Pfailf("Failed to create workplace directory: %v\n", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("Failed to create workplace directory: %v", err))
 		}
 	}
 
@@ -52,6 +50,11 @@ func GetPath() string {
 
 func GetFeaturesPath() string {
 	return filepath.Join(GetPath(), "features")
+}
+
+// GetProjectFeaturesPath returns the path to the features directory for a specific project
+func GetProjectFeaturesPath(projectName string) string {
+	return filepath.Join(GetFeaturesPath(), projectName)
 }
 
 type ClonedFeature struct {
@@ -84,46 +87,81 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 		return nil, nil
 	}
 
-	entries, err := os.ReadDir(featuresPath)
+	// Read project directories
+	projectEntries, err := os.ReadDir(featuresPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var result []ClonedFeature
-	for _, entry := range entries {
-		if entry.IsDir() {
-			fullPath := filepath.Join(featuresPath, entry.Name())
+	// Iterate through each project directory
+	for _, projectEntry := range projectEntries {
+		if !projectEntry.IsDir() {
+			continue
+		}
+
+		projectPath := filepath.Join(featuresPath, projectEntry.Name())
+
+		// Read subdirectories (repos and worktrees)
+		subEntries, err := os.ReadDir(projectPath)
+		if err != nil {
+			continue
+		}
+
+		for _, subEntry := range subEntries {
+			if !subEntry.IsDir() {
+				continue
+			}
+
+			fullPath := filepath.Join(projectPath, subEntry.Name())
+
+			// Check if it's a git repository
+			repo, err := git.RepoAtPath(fullPath)
+			if err != nil {
+				continue
+			}
+
+			// Create a display name that includes the project
+			displayName := filepath.Join(projectEntry.Name(), subEntry.Name())
+
 			result = append(result, ClonedFeature{
-				DirName:  entry.Name(),
+				DirName:  displayName,
 				FullPath: fullPath,
-				Repos:    GetFeatureRepositories(fullPath),
+				Repos: []ClonedRepo{
+					{
+						DirName: subEntry.Name(),
+						Repo:    repo,
+					},
+				},
 			})
 		}
 	}
 	return result, nil
 }
 
-func GetFeatureRepositories(featurePath string) []ClonedRepo {
-	entries, err := os.ReadDir(featurePath)
-	if err != nil {
-		return nil
-	}
-	var result []ClonedRepo
-	for _, entry := range entries {
-		if entry.IsDir() {
-			subDirPath := filepath.Join(featurePath, entry.Name())
-			repo, err := git.RepoAtPath(subDirPath)
-			if err == nil && len(repo.FullNames) > 0 {
-				result = append(result, ClonedRepo{
-					DirName: entry.Name(),
-					Repo:    repo,
-				})
-			}
-		}
-	}
-	return result
-}
-
 func GetFeaturePath(dirName string) string {
 	return filepath.Join(GetFeaturesPath(), dirName)
+}
+
+// GetMainRepoPath returns the path to the main repository for a project
+// Main repo is located at features/{projectName}/{repoName}/
+func GetMainRepoPath(projectName, repoName string) string {
+	return filepath.Join(GetProjectFeaturesPath(projectName), repoName)
+}
+
+// GetWorktreePath returns the path to a worktree for a specific project and task
+// Worktree is located at features/{projectName}/{taskName}/
+func GetWorktreePath(projectName, taskName string) string {
+	return filepath.Join(GetProjectFeaturesPath(projectName), taskName)
+}
+
+// MainRepoExists checks if the main repository for a project exists
+func MainRepoExists(projectName, repoName string) bool {
+	repoPath := GetMainRepoPath(projectName, repoName)
+	if _, err := os.Stat(repoPath); err == nil {
+		// Check if it's actually a git repository
+		_, err := git.RepoAtPath(repoPath)
+		return err == nil
+	}
+	return false
 }

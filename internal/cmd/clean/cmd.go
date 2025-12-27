@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -50,7 +51,7 @@ func runClean() {
 	featurePath := workspace.GetFeaturePath(selectedFeature)
 
 	confirm := promptui.Prompt{
-		Label:     fmt.Sprintf("Directory %s will be permanently deleted. Are you sure", featurePath),
+		Label:     fmt.Sprintf("Worktree %s will be permanently deleted. Are you sure", featurePath),
 		IsConfirm: true,
 	}
 	resp, err := confirm.Run()
@@ -60,8 +61,40 @@ func runClean() {
 		return
 	}
 
-	err = os.RemoveAll(featurePath)
-	check(err)
+	// Check if this is a worktree
+	isWorktree, err := git.IsWorktree(featurePath)
+	if err != nil {
+		fmt.Println(out.Warnf("Could not determine if path is a worktree: %v", err))
+		isWorktree = false
+	}
+
+	if isWorktree {
+		// Get the main repo path
+		mainRepoPath, err := git.GetMainRepoPath(featurePath)
+		if err != nil {
+			fmt.Println(out.Warnf("Could not get main repo path: %v", err))
+			// Fall back to simple removal
+			err = os.RemoveAll(featurePath)
+			check(err)
+		} else {
+			// Remove the worktree using git
+			err = git.RemoveWorktree(mainRepoPath, featurePath)
+			if err != nil {
+				fmt.Println(out.Warnf("Failed to remove worktree via git: %v", err))
+				// Fall back to simple removal
+				err = os.RemoveAll(featurePath)
+				check(err)
+			}
+
+			// Prune worktrees to clean up administrative files
+			_ = git.PruneWorktrees(mainRepoPath)
+		}
+	} else {
+		// Not a worktree, just remove the directory
+		err = os.RemoveAll(featurePath)
+		check(err)
+	}
+
 	out.Psuccessf("Successfully deleted %s\n", out.H(featurePath))
 }
 
