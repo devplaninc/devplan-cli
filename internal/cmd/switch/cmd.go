@@ -6,13 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/huh"
+	"github.com/devplaninc/devplan-cli/internal/cmd/common"
+	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/opensdd/osdd-core/core/executable"
-
-	"github.com/devplaninc/devplan-cli/internal/out"
-	"github.com/devplaninc/devplan-cli/internal/utils/ide"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -44,22 +44,31 @@ func runSwitch(ideName string) {
 		os.Exit(1)
 	}
 
-	var displayItems []string
-	for _, f := range features {
-		displayItems = append(displayItems, f.GetDisplayName())
+	// Build options for selection with full paths
+	options, hasAnyChanges := common.BuildFeatureOptions(features)
+
+	// Show legend if there are any uncommitted changes
+	if hasAnyChanges {
+		common.ShowLegend()
 	}
 
-	prompt := promptui.Select{
-		Label: "Select a feature to switch to",
-		Items: displayItems,
-	}
-	idx, _, err := prompt.Run()
+	var selectedIdx int
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Title("Select a feature to switch to").
+				Options(options...).
+				Value(&selectedIdx),
+		),
+	)
+
+	err = form.Run()
 	if err != nil {
 		fmt.Println(out.Failf("Feature selection failed: %v", err))
 		os.Exit(1)
 	}
-	selectedFeature := features[idx]
 
+	selectedFeature := features[selectedIdx]
 	featurePath := selectedFeature.FullPath
 
 	if ideName != "" {
@@ -79,18 +88,28 @@ func runSwitch(ideName string) {
 		os.Exit(1)
 	}
 
-	// Otherwise, prompt user to select an IDE
+	// Build IDE options
 	ideNames := getIDENames(ides)
-	idePrompt := promptui.Select{
-		Label: "Select an IDE to open the feature",
-		Items: ideNames,
+	var ideOptions []huh.Option[ide.IDE]
+	for _, name := range ideNames {
+		ideOptions = append(ideOptions, huh.NewOption(string(name), name))
 	}
-	ideIdx, _, err := idePrompt.Run()
+
+	var selectedIDEName ide.IDE
+	ideForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[ide.IDE]().
+				Title("Select an IDE to open the feature").
+				Options(ideOptions...).
+				Value(&selectedIDEName),
+		),
+	)
+
+	err = ideForm.Run()
 	if err != nil {
 		fmt.Println(out.Failf("IDE selection failed: %v", err))
 		os.Exit(1)
 	}
-	selectedIDEName := ideNames[ideIdx]
 
 	launchSelectedIDE(ctx, selectedIDEName, featurePath)
 }

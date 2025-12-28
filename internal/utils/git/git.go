@@ -441,6 +441,32 @@ func GetMainRepoPath(worktreePath string) (string, error) {
 	return mainRepoPath, nil
 }
 
+// HasUncommittedChanges checks if a repository has uncommitted changes (staged or unstaged)
+// Ignores untracked files (files that start with "??")
+func HasUncommittedChanges(repoPath string) (bool, error) {
+	cmd := exec.Command("git", "-C", repoPath, "status", "--porcelain")
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to check git status: %w", err)
+	}
+
+	// Parse the output line by line, ignoring untracked files
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		// Ignore untracked files (lines starting with "??")
+		if strings.HasPrefix(line, "??") {
+			continue
+		}
+		// If we find any non-untracked change, return true
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func getRepoURLs(path string) ([]string, error) {
 	// Use git command directly to get remote URL (works with worktrees)
 	cmd := exec.Command("git", "-C", path, "remote", "get-url", "origin")

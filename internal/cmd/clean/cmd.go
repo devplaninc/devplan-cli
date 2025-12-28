@@ -3,11 +3,14 @@ package clean
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/charmbracelet/huh"
+	"github.com/devplaninc/devplan-cli/internal/cmd/common"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
+	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
-	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -35,28 +38,58 @@ func runClean() {
 		return
 	}
 
-	var displayItems []string
-	for _, f := range clonedFeatures {
-		displayItems = append(displayItems, f.GetDisplayName())
+	// Build options for selection with full paths
+	options, hasAnyChanges := common.BuildFeatureOptions(clonedFeatures)
+
+	// Show legend if there are any uncommitted changes
+	if hasAnyChanges {
+		common.ShowLegend()
 	}
 
-	prompt := promptui.Select{
-		Label: "Select a feature to clean up",
-		Items: displayItems,
-	}
-	idx, _, err := prompt.Run()
+	var selectedIdx int
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Title("Select a feature to clean up").
+				Options(options...).
+				Value(&selectedIdx),
+		),
+	)
+
+	err = form.Run()
 	check(err)
-	selectedFeature := clonedFeatures[idx].DirName
 
-	featurePath := workspace.GetFeaturePath(selectedFeature)
+	selectedFeature := clonedFeatures[selectedIdx]
+	featurePath := selectedFeature.FullPath
+	displayPath := ide.PathWithTilde(featurePath)
 
-	confirm := promptui.Prompt{
-		Label:     fmt.Sprintf("Worktree %s will be permanently deleted. Are you sure", featurePath),
-		IsConfirm: true,
+	// Check for uncommitted changes
+	hasChanges, err := git.HasUncommittedChanges(featurePath)
+	if err != nil {
+		fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
 	}
-	resp, err := confirm.Run()
+
+	// Build confirmation message
+	confirmMsg := fmt.Sprintf("Worktree %s will be permanently deleted.", displayPath)
+	if hasChanges {
+		confirmMsg = fmt.Sprintf("⚠️  WARNING: %s has uncommitted changes!\n\nWorktree %s will be permanently deleted.", displayPath, displayPath)
+	}
+
+	var confirm bool
+	confirmForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title(confirmMsg).
+				Affirmative("Yes, delete it").
+				Negative("No, keep it").
+				Value(&confirm),
+		),
+	)
+
+	err = confirmForm.Run()
 	check(err)
-	if resp != "y" {
+
+	if !confirm {
 		out.Pfailf("Deletion aborted")
 		return
 	}
@@ -64,30 +97,31 @@ func runClean() {
 	// Check if this is a worktree
 	isWorktree, err := git.IsWorktree(featurePath)
 	if err != nil {
-		fmt.Println(out.Warnf("Could not determine if path is a worktree: %v", err))
+		// Could not determine, assume it's not a worktree
 		isWorktree = false
 	}
+
+	// Store the parent directory before deletion
+	parentDir := filepath.Dir(featurePath)
 
 	if isWorktree {
 		// Get the main repo path
 		mainRepoPath, err := git.GetMainRepoPath(featurePath)
-		if err != nil {
-			fmt.Println(out.Warnf("Could not get main repo path: %v", err))
-			// Fall back to simple removal
-			err = os.RemoveAll(featurePath)
-			check(err)
-		} else {
-			// Remove the worktree using git
+		if err == nil {
+			// Try to remove the worktree using git
 			err = git.RemoveWorktree(mainRepoPath, featurePath)
-			if err != nil {
-				fmt.Println(out.Warnf("Failed to remove worktree via git: %v", err))
-				// Fall back to simple removal
+			if err == nil {
+				// Successfully removed as worktree, prune administrative files
+				_ = git.PruneWorktrees(mainRepoPath)
+			} else {
+				// Failed to remove as worktree (might be a base branch), fall back to simple removal
 				err = os.RemoveAll(featurePath)
 				check(err)
 			}
-
-			// Prune worktrees to clean up administrative files
-			_ = git.PruneWorktrees(mainRepoPath)
+		} else {
+			// Could not get main repo path, fall back to simple removal
+			err = os.RemoveAll(featurePath)
+			check(err)
 		}
 	} else {
 		// Not a worktree, just remove the directory
@@ -95,7 +129,17 @@ func runClean() {
 		check(err)
 	}
 
-	out.Psuccessf("Successfully deleted %s\n", out.H(featurePath))
+	// Check if parent directory is empty and remove it
+	if entries, err := os.ReadDir(parentDir); err == nil && len(entries) == 0 {
+		if err := os.Remove(parentDir); err == nil {
+			parentDisplayPath := ide.PathWithTilde(parentDir)
+			out.Psuccessf("Successfully deleted %s and empty parent directory %s\n", out.H(displayPath), out.H(parentDisplayPath))
+		} else {
+			out.Psuccessf("Successfully deleted %s\n", out.H(displayPath))
+		}
+	} else {
+		out.Psuccessf("Successfully deleted %s\n", out.H(displayPath))
+	}
 }
 
 func check(err error) {
