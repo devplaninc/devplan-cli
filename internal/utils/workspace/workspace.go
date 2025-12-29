@@ -108,6 +108,8 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 			continue
 		}
 
+		var projectFeatures []ClonedFeature
+		hasRepo := false
 		for _, subEntry := range subEntries {
 			if !subEntry.IsDir() {
 				continue
@@ -115,25 +117,52 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 
 			fullPath := filepath.Join(projectPath, subEntry.Name())
 
-			// Check if it's a git repository
-			repo, err := git.RepoAtPath(fullPath)
-			if err != nil {
-				continue
-			}
-
 			// Create a display name that includes the project
 			displayName := filepath.Join(projectEntry.Name(), subEntry.Name())
 
-			result = append(result, ClonedFeature{
+			feature := ClonedFeature{
 				DirName:  displayName,
 				FullPath: fullPath,
-				Repos: []ClonedRepo{
+			}
+
+			// Check if it's a git repository
+			repo, err := git.RepoAtPath(fullPath)
+			if err == nil {
+				feature.Repos = []ClonedRepo{
 					{
 						DirName: subEntry.Name(),
 						Repo:    repo,
 					},
-				},
+				}
+				hasRepo = true
+			}
+
+			projectFeatures = append(projectFeatures, feature)
+		}
+
+		if hasRepo {
+			result = append(result, projectFeatures...)
+		} else {
+			// If no repos found in subfolders, just show the project directory
+			result = append(result, ClonedFeature{
+				DirName:  projectEntry.Name(),
+				FullPath: projectPath,
 			})
+		}
+	}
+	return result, nil
+}
+
+// ListClonedRepos returns only those features that are valid git repositories
+func ListClonedRepos() ([]ClonedFeature, error) {
+	all, err := ListClonedFeatures()
+	if err != nil {
+		return nil, err
+	}
+	var result []ClonedFeature
+	for _, f := range all {
+		if len(f.Repos) > 0 {
+			result = append(result, f)
 		}
 	}
 	return result, nil

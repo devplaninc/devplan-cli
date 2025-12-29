@@ -64,9 +64,13 @@ func runClean() {
 	displayPath := ide.PathWithTilde(featurePath)
 
 	// Check for uncommitted changes
-	hasChanges, err := git.HasUncommittedChanges(featurePath)
-	if err != nil {
-		fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
+	hasChanges := false
+	if len(selectedFeature.Repos) > 0 {
+		var err error
+		hasChanges, err = git.HasUncommittedChanges(featurePath)
+		if err != nil {
+			fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
+		}
 	}
 
 	// Build confirmation message
@@ -95,10 +99,14 @@ func runClean() {
 	}
 
 	// Check if this is a worktree
-	isWorktree, err := git.IsWorktree(featurePath)
-	if err != nil {
-		// Could not determine, assume it's not a worktree
-		isWorktree = false
+	isWorktree := false
+	if len(selectedFeature.Repos) > 0 {
+		var err error
+		isWorktree, err = git.IsWorktree(featurePath)
+		if err != nil {
+			// Could not determine, assume it's not a worktree
+			isWorktree = false
+		}
 	}
 
 	// Store the parent directory before deletion

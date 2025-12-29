@@ -37,8 +37,9 @@ func create() *cobra.Command {
 
 func runSwitch(ideName string) {
 	ctx := context.Background()
-	features, err := workspace.ListClonedFeatures()
+	features, err := workspace.ListClonedRepos()
 	check(err)
+
 	if len(features) == 0 {
 		fmt.Println(out.Failf("No cloned features found. Use 'devplan clone' to clone a feature first."))
 		os.Exit(1)

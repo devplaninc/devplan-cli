@@ -24,9 +24,13 @@ func BuildFeatureOptions(features []workspace.ClonedFeature) ([]huh.Option[int],
 		displayPath := ide.PathWithTilde(f.FullPath)
 
 		// Check for uncommitted changes
-		hasChanges, err := git.HasUncommittedChanges(f.FullPath)
-		if err != nil {
-			hasChanges = false // Ignore errors, just don't show indicator
+		hasChanges := false
+		if len(f.Repos) > 0 {
+			var err error
+			hasChanges, err = git.HasUncommittedChanges(f.FullPath)
+			if err != nil {
+				hasChanges = false // Ignore errors, just don't show indicator
+			}
 		}
 		if hasChanges {
 			hasAnyChanges = true

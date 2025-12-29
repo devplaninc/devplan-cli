@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -224,5 +225,79 @@ func TestPathFunctions(t *testing.T) {
 				assert.Equal(t, tt.expected, result)
 			})
 		}
+	})
+
+	t.Run("ListClonedFeatures returns project folder if no repos in subfolders", func(t *testing.T) {
+		// Create a temporary directory for testing
+		tempDir := t.TempDir()
+		viper.Set(workspaceConfigKey, tempDir)
+
+		featuresDir := filepath.Join(tempDir, "features")
+		projectDir := filepath.Join(featuresDir, "myproject")
+		subDir1 := filepath.Join(projectDir, "sub1")
+		subDir2 := filepath.Join(projectDir, "sub2")
+
+		err := os.MkdirAll(subDir1, 0755)
+		assert.NoError(t, err)
+		err = os.MkdirAll(subDir2, 0755)
+		assert.NoError(t, err)
+
+		features, err := ListClonedFeatures()
+		assert.NoError(t, err)
+		assert.Len(t, features, 1)
+		assert.Equal(t, "myproject", features[0].DirName)
+		assert.Equal(t, projectDir, features[0].FullPath)
+		assert.Empty(t, features[0].Repos)
+	})
+
+	t.Run("ListClonedFeatures returns subfolders if at least one repo exists", func(t *testing.T) {
+		// Create a temporary directory for testing
+		tempDir := t.TempDir()
+		viper.Set(workspaceConfigKey, tempDir)
+
+		featuresDir := filepath.Join(tempDir, "features")
+		projectDir := filepath.Join(featuresDir, "myproject")
+		repoDir := filepath.Join(projectDir, "repo")
+		nonRepoDir := filepath.Join(projectDir, "junk")
+
+		err := os.MkdirAll(repoDir, 0755)
+		assert.NoError(t, err)
+		err = os.MkdirAll(nonRepoDir, 0755)
+		assert.NoError(t, err)
+
+		// Make repoDir a git repo
+		cmd := exec.Command("git", "-C", repoDir, "init")
+		err = cmd.Run()
+		assert.NoError(t, err)
+
+		cmd = exec.Command("git", "-C", repoDir, "remote", "add", "origin", "https://github.com/user/repo.git")
+		err = cmd.Run()
+		assert.NoError(t, err)
+
+		features, err := ListClonedFeatures()
+		assert.NoError(t, err)
+		assert.Len(t, features, 2)
+
+		// They should be subfolders
+		dirNames := []string{features[0].DirName, features[1].DirName}
+		assert.Contains(t, dirNames, "myproject/repo")
+		assert.Contains(t, dirNames, "myproject/junk")
+	})
+
+	t.Run("ListClonedRepos excludes non-git directories", func(t *testing.T) {
+		// Create a temporary directory for testing
+		tempDir := t.TempDir()
+		viper.Set(workspaceConfigKey, tempDir)
+
+		featuresDir := filepath.Join(tempDir, "features")
+		projectDir := filepath.Join(featuresDir, "myproject")
+		nonGitDir := filepath.Join(projectDir, "non-git-dir")
+
+		err := os.MkdirAll(nonGitDir, 0755)
+		assert.NoError(t, err)
+
+		features, err := ListClonedRepos()
+		assert.NoError(t, err)
+		assert.Len(t, features, 0)
 	})
 }

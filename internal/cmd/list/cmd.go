@@ -32,8 +32,9 @@ func create() *cobra.Command {
 }
 
 func runList() {
-	features, err := workspace.ListClonedFeatures()
+	features, err := workspace.ListClonedRepos()
 	check(err)
+
 	if len(features) == 0 {
 		fmt.Println("No cloned features found. Use 'devplan clone' to clone a feature first.")
 		os.Exit(0)
