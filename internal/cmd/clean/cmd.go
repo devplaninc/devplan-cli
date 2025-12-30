@@ -94,9 +94,11 @@ func runClean() {
 	check(err)
 
 	if !confirm {
-		out.Pfailf("Deletion aborted")
+		out.Pfailf("Deletion aborted\n")
 		return
 	}
+
+	fmt.Printf("Cleaning up %s...\n", out.H(displayPath))
 
 	// Check if this is a worktree
 	isWorktree := false
@@ -117,22 +119,27 @@ func runClean() {
 		mainRepoPath, err := git.GetMainRepoPath(featurePath)
 		if err == nil {
 			// Try to remove the worktree using git
+			fmt.Printf("Removing worktree...\n")
 			err = git.RemoveWorktree(mainRepoPath, featurePath)
 			if err == nil {
 				// Successfully removed as worktree, prune administrative files
+				fmt.Printf("Pruning worktrees in %s...\n", out.H(ide.PathWithTilde(mainRepoPath)))
 				_ = git.PruneWorktrees(mainRepoPath)
 			} else {
 				// Failed to remove as worktree (might be a base branch), fall back to simple removal
+				fmt.Printf("Failed to remove worktree, deleting directory %s...\n", out.H(displayPath))
 				err = os.RemoveAll(featurePath)
 				check(err)
 			}
 		} else {
 			// Could not get main repo path, fall back to simple removal
+			fmt.Printf("Deleting directory %s...\n", out.H(displayPath))
 			err = os.RemoveAll(featurePath)
 			check(err)
 		}
 	} else {
 		// Not a worktree, just remove the directory
+		fmt.Printf("Deleting directory %s...\n", out.H(displayPath))
 		err = os.RemoveAll(featurePath)
 		check(err)
 	}
