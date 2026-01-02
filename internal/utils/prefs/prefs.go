@@ -20,6 +20,7 @@ const (
 	LastGitProtocolKey  = "last_git_protocol"
 	GitURLsKey          = "git_urls"
 	LastAssistantConfig = "last_assistant"
+	LastIDEKey          = "last_ide"
 
 	apiKeyConfig = "apikey"
 )
@@ -121,6 +122,17 @@ func GetLastAssistant() (string, bool) {
 // SetLastAssistant saves the last selected assistant to config
 func SetLastAssistant(asst string) {
 	viper.Set(LastAssistantConfig, asst)
+	_ = viper.WriteConfig()
+}
+
+// GetLastIDE returns the last selected IDE from config
+func GetLastIDE() string {
+	return viper.GetString(LastIDEKey)
+}
+
+// SetLastIDE saves the last selected IDE to config
+func SetLastIDE(ide string) {
+	viper.Set(LastIDEKey, ide)
 	_ = viper.WriteConfig()
 }
 

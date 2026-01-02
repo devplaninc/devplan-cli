@@ -79,3 +79,42 @@ func GetAssistant(ide IDE) (Assistant, error) {
 func GetAssistants() []Assistant {
 	return []Assistant{ClaudeAI, CursorAI, JunieAI, WindsurfAI}
 }
+
+func (i IDE) String() string {
+	return i.DisplayName()
+}
+
+func (i IDE) DisplayName() string {
+	switch i {
+	case Claude:
+		return "Claude Code"
+	case Cursor:
+		return "Cursor"
+	case WebStorm:
+		return "WebStorm"
+	case PyCharm:
+		return "PyCharm"
+	case IntelliJ:
+		return "IntelliJ IDEA"
+	case GoLand:
+		return "GoLand"
+	case PhpStorm:
+		return "PhpStorm"
+	case RubyMine:
+		return "RubyMine"
+	case CLion:
+		return "CLion"
+	case Rider:
+		return "Rider"
+	case DataGrip:
+		return "DataGrip"
+	case AppCode:
+		return "AppCode"
+	case Windsurf:
+		return "Windsurf"
+	case CursorCLI:
+		return "Cursor CLI"
+	default:
+		return string(i)
+	}
+}

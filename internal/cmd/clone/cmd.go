@@ -10,6 +10,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/loaders"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +71,7 @@ func launch(ideName ide.IDE, repoPath string, start bool) error {
 		return err
 	}
 	if launched {
+		prefs.SetLastIDE(string(ideName))
 		out.Successf(
 			"%v launched at the repository. You can ask AI assitant there to execute current feature. Happy coding!",
 			ideName)

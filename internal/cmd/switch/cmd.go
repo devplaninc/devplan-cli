@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -93,7 +94,7 @@ func runSwitch(ideName string) {
 	ideNames := getIDENames(ides)
 	var ideOptions []huh.Option[ide.IDE]
 	for _, name := range ideNames {
-		ideOptions = append(ideOptions, huh.NewOption(string(name), name))
+		ideOptions = append(ideOptions, huh.NewOption(name.DisplayName(), name))
 	}
 
 	var selectedIDEName ide.IDE
@@ -118,6 +119,7 @@ func runSwitch(ideName string) {
 func launchSelectedIDE(ctx context.Context, ideName ide.IDE, featurePath string) {
 	// With worktrees, each feature directory is a worktree that can be directly opened
 	fmt.Printf("Opening %s in %s...\n", out.H(featurePath), out.Hf("%v", ideName))
+	prefs.SetLastIDE(string(ideName))
 	outOnly := prefs.InstructionFile != ""
 	res, err := executable.LaunchIDE(ctx, executable.LaunchParams{
 		IDE:           string(ideName),
@@ -136,6 +138,45 @@ func getIDENames(ides map[ide.IDE]string) []ide.IDE {
 	for name := range ides {
 		names = append(names, name)
 	}
+
+	lastIDE := prefs.GetLastIDE()
+	popularity := map[ide.IDE]int{
+		ide.Claude:   1,
+		ide.Cursor:   2,
+		ide.WebStorm: 3,
+		ide.PyCharm:  4,
+	}
+
+	sort.Slice(names, func(i, j int) bool {
+		nameI := names[i]
+		nameJ := names[j]
+
+		// Last used one comes on top
+		if string(nameI) == lastIDE {
+			return true
+		}
+		if string(nameJ) == lastIDE {
+			return false
+		}
+
+		// Then by popularity
+		weightI, okI := popularity[nameI]
+		weightJ, okJ := popularity[nameJ]
+
+		if okI && okJ {
+			if weightI != weightJ {
+				return weightI < weightJ
+			}
+		} else if okI {
+			return true
+		} else if okJ {
+			return false
+		}
+
+		// Then by alphabet
+		return string(nameI) < string(nameJ)
+	})
+
 	return names
 }
 
