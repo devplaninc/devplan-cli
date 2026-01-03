@@ -2,15 +2,15 @@ package out
 
 import (
 	"fmt"
+
 	"github.com/charmbracelet/lipgloss"
-	"github.com/manifoldco/promptui"
 )
 
 var (
 	highlightStyle = lipgloss.NewStyle().Bold(true)
-	Check          = lipgloss.NewStyle().Bold(true).Render(promptui.IconGood)
-	Cross          = lipgloss.NewStyle().Bold(true).Render(promptui.IconBad)
-	WarnIcon       = lipgloss.NewStyle().Bold(true).Render(promptui.IconWarn)
+	Check          = lipgloss.NewStyle().Bold(true).Render("✔")
+	Cross          = lipgloss.NewStyle().Bold(true).Render("✘")
+	WarnIcon       = lipgloss.NewStyle().Bold(true).Render("⚠")
 )
 
 const (

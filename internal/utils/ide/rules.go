@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/prompts"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/integrations"
-	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 )
 
@@ -118,16 +118,16 @@ func confirmRulesGeneration(
 	fmt.Print(out.H(fmt.Sprintf(
 		"\nRules for %v will be generated for the selected feature in the current repository %v.\n\n",
 		strings.Join(assistantsStr, ", "), root)))
-	prompt := promptui.Prompt{
-		Label:     "Create rules",
-		IsConfirm: true,
-	}
-	result, err := prompt.Run()
+	var confirmed bool
+	err = huh.NewConfirm().
+		Title("Create rules?").
+		Value(&confirmed).
+		Run()
 	if err != nil {
 		return err
 	}
-	if result != "y" {
-		return errors.New("aborted:" + result)
+	if !confirmed {
+		return errors.New("aborted")
 	}
 	return nil
 }

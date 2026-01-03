@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/components/spinner"
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/out"
@@ -16,7 +17,6 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
-	"github.com/manifoldco/promptui"
 )
 
 type InteractiveCloneResult struct {
@@ -104,16 +104,16 @@ func prepareRepository(
 			out.Psuccessf("Worktree %s already exists. Opening it in %v.\n", out.H(displayPath), out.H(ideName))
 			return worktreePath, git.EnsureRepoPath(worktreePath), nil
 		}
-		p := promptui.Prompt{
-			Label: fmt.Sprintf("Worktree %s already exists. Do you want to open it in %v",
-				displayPath, ideName),
-			IsConfirm: true,
-		}
-		resp, err := p.Run()
+		var confirmed bool
+		err := huh.NewConfirm().
+			Title(fmt.Sprintf("Worktree %s already exists. Do you want to open it in %v?",
+				displayPath, ideName)).
+			Value(&confirmed).
+			Run()
 		if err != nil {
 			return "", repo, err
 		}
-		if resp != "y" {
+		if !confirmed {
 			return "", git.RepoInfo{}, fmt.Errorf("worktree already exists, selected not to open it")
 		}
 		return worktreePath, git.EnsureRepoPath(worktreePath), nil
@@ -191,15 +191,15 @@ func confirmRepository(repoName string, companyID int32) (git.RepoInfo, error) {
 	}
 
 	// Prompt user to select a repository
-	prompt := promptui.Select{
-		Label: "Select repository",
-		Items: repoNames,
-	}
-	idx, _, err := prompt.Run()
+	var selectedRepoName string
+	err = huh.NewSelect[string]().
+		Title("Select repository").
+		Options(huh.NewOptions(repoNames...)...).
+		Value(&selectedRepoName).
+		Run()
 	if err != nil {
 		return git.RepoInfo{}, fmt.Errorf("repository selection failed: %v", err)
 	}
-	selectedRepoName := repoNames[idx]
 	return byName[selectedRepoName], nil
 }
 
@@ -218,6 +218,30 @@ func cloneMainRepository(ctx context.Context, repo git.RepoInfo, path string, br
 func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName string) error {
 	err := git.CreateWorktree(mainRepoPath, worktreePath, branchName)
 	if err != nil {
+		errStr := err.Error()
+		if strings.Contains(errStr, "already registered worktree") || strings.Contains(errStr, "already exists") {
+			confirmed := false
+			err := huh.NewConfirm().
+				Title(fmt.Sprintf("Worktree at %s already exists or is registered. Do you want to remove/prune it and try again?", worktreePath)).
+				Value(&confirmed).
+				Run()
+			if err != nil {
+				return fmt.Errorf("confirmation failed: %w", err)
+			}
+			if confirmed {
+				fmt.Println("Pruning and removing existing worktree registration...")
+				_ = git.PruneWorktrees(mainRepoPath)
+				_ = git.RemoveWorktree(mainRepoPath, worktreePath)
+				_ = os.RemoveAll(worktreePath)
+
+				// Retry
+				err = git.CreateWorktree(mainRepoPath, worktreePath, branchName)
+				if err == nil {
+					out.Psuccessf("Worktree %s created successfully after cleanup\n", out.H(worktreePath))
+					return nil
+				}
+			}
+		}
 		_ = os.RemoveAll(worktreePath)
 		return fmt.Errorf("failed to create worktree: %w", err)
 	}

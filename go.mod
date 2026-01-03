@@ -11,7 +11,6 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/devplaninc/webapp v0.8.0
 	github.com/go-git/go-git/v5 v5.16.4
-	github.com/manifoldco/promptui v0.9.0
 	github.com/modelcontextprotocol/go-sdk v1.1.0
 	github.com/opensdd/osdd-api/clients/go v0.5.8
 	github.com/opensdd/osdd-core v0.7.4
@@ -32,7 +31,6 @@ require (
 	github.com/charmbracelet/x/cellbuf v0.0.14 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20251201173703-9f73bfd934ff // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
-	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/clipperhouse/displaywidth v0.6.1 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect

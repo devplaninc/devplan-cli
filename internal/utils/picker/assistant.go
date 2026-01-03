@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
-	"github.com/manifoldco/promptui"
 )
 
 func AssistantForIDE(ideName string) ([]ide.Assistant, error) {
@@ -22,12 +22,15 @@ func AssistantForIDE(ideName string) ([]ide.Assistant, error) {
 	}
 	allowedAssistants := ide.GetAssistants()
 	fmt.Printf("No AssistantForIDE auto detected or provided.\n")
-	prompt := promptui.Select{Label: "Select AssistantForIDE", Items: allowedAssistants}
-	_, asstName, err := prompt.Run()
+	var asst ide.Assistant
+	err = huh.NewSelect[ide.Assistant]().
+		Title("Select AssistantForIDE").
+		Options(huh.NewOptions(allowedAssistants...)...).
+		Value(&asst).
+		Run()
 	if err != nil {
 		return nil, err
 	}
-	asst := ide.Assistant(asstName)
 	if asst == "" || !slices.Contains(allowedAssistants, asst) {
 		return nil, fmt.Errorf("no valid assistant selected")
 	}
@@ -51,12 +54,15 @@ func Assistant(asst string) ([]ide.Assistant, error) {
 	}
 
 	allowedAssistants := ide.GetAssistants()
-	prompt := promptui.Select{Label: "Select Assistant", Items: allowedAssistants}
-	_, asstName, err := prompt.Run()
+	var selected ide.Assistant
+	err = huh.NewSelect[ide.Assistant]().
+		Title("Select Assistant").
+		Options(huh.NewOptions(allowedAssistants...)...).
+		Value(&selected).
+		Run()
 	if err != nil {
 		return nil, err
 	}
-	selected := ide.Assistant(asstName)
 	if selected == "" || !slices.Contains(allowedAssistants, selected) {
 		return nil, fmt.Errorf("no valid assistant selected")
 	}
