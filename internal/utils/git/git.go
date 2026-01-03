@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
@@ -113,7 +114,7 @@ type CloneOptions struct {
 }
 
 func Clone(opt CloneOptions) error {
-	cmd := exec.Command("git", "clone", opt.RepoURL, opt.TargetPath)
+	cmd := gitCommand("clone", opt.RepoURL, opt.TargetPath)
 	if o := opt.OutWriter; o != nil {
 		cmd.Stdout = o
 		cmd.Stderr = o
@@ -158,7 +159,7 @@ func SetupBranch(repoPath, branchName string) error {
 
 func GetRoot() (string, error) {
 	// Use git command to get the root directory (works with worktrees)
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := gitCommand("rev-parse", "--show-toplevel")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -168,7 +169,7 @@ func GetRoot() (string, error) {
 
 // LocalBranchExists checks if a local branch with the given name exists
 func LocalBranchExists(repoPath, branchName string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branchName)
+	cmd := gitCommand("-C", repoPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branchName)
 	err := cmd.Run()
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -185,7 +186,7 @@ func LocalBranchExists(repoPath, branchName string) (bool, error) {
 // RemoteBranchExists checks if a remote branch with the given name exists on origin.
 // Uses ls-remote to query the remote directly without fetching the entire repo.
 func RemoteBranchExists(repoPath, branchName string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoPath, "ls-remote", "--heads", "origin", branchName)
+	cmd := gitCommand("-C", repoPath, "ls-remote", "--heads", "origin", branchName)
 	output, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -201,13 +202,63 @@ func RemoteBranchExists(repoPath, branchName string) (bool, error) {
 
 // FetchRemote fetches updates from a remote to ensure remote refs are up-to-date
 func FetchRemote(repoPath, remoteName string) error {
-	cmd := exec.Command("git", "-C", repoPath, "fetch", remoteName)
+	cmd := gitCommand("-C", repoPath, "fetch", remoteName)
 	return cmd.Run()
+}
+
+// GetDefaultBranchName tries to determine the default branch name for the repository
+func GetDefaultBranchName(repoPath string) (string, error) {
+	// Try to get it from remote origin HEAD
+	cmd := gitCommand("-C", repoPath, "symbolic-ref", "refs/remotes/origin/HEAD")
+	output, err := cmd.Output()
+	if err == nil {
+		ref := strings.TrimSpace(string(output))
+		return filepath.Base(ref), nil
+	}
+
+	// Fallback to common names
+	for _, name := range []string{"main", "master"} {
+		exists, _ := LocalBranchExists(repoPath, name)
+		if exists {
+			return name, nil
+		}
+	}
+	return "", fmt.Errorf("could not determine default branch")
+}
+
+// IsBehind checks if the local branch is behind its remote counterpart
+func IsBehind(repoPath, branch string) (bool, error) {
+	exists, err := LocalBranchExists(repoPath, branch)
+	if err != nil || !exists {
+		return false, nil
+	}
+
+	// git rev-list --count branch..origin/branch
+	cmd := gitCommand("-C", repoPath, "rev-list", "--count", branch+"..origin/"+branch)
+	output, err := cmd.Output()
+	if err != nil {
+		return false, err
+	}
+	count, err := strconv.Atoi(strings.TrimSpace(string(output)))
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// FastForwardBaseBranch updates the local branch from origin if it's a fast-forward
+func FastForwardBaseBranch(repoPath, branch string) error {
+	cmd := gitCommand("-C", repoPath, "fetch", "origin", branch+":"+branch)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update branch %s: %s", branch, strings.TrimSpace(string(output)))
+	}
+	return nil
 }
 
 // CheckoutLocalBranch checks out an existing local branch
 func CheckoutLocalBranch(repoPath, branchName string) error {
-	cmd := exec.Command("git", "-C", repoPath, "checkout", branchName)
+	cmd := gitCommand("-C", repoPath, "checkout", branchName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(output)))
@@ -217,7 +268,7 @@ func CheckoutLocalBranch(repoPath, branchName string) error {
 
 // CheckoutRemoteBranch creates and checks out a local branch that tracks a remote branch
 func CheckoutRemoteBranch(repoPath, branchName, remoteName string) error {
-	cmd := exec.Command("git", "-C", repoPath, "checkout", "-b", branchName, remoteName+"/"+branchName)
+	cmd := gitCommand("-C", repoPath, "checkout", "-b", branchName, remoteName+"/"+branchName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(output)))
@@ -227,7 +278,7 @@ func CheckoutRemoteBranch(repoPath, branchName, remoteName string) error {
 
 // CreateAndCheckoutBranch creates a new branch and checks it out
 func CreateAndCheckoutBranch(repoPath, branchName string) error {
-	cmd := exec.Command("git", "-C", repoPath, "checkout", "-b", branchName)
+	cmd := gitCommand("-C", repoPath, "checkout", "-b", branchName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s", strings.TrimSpace(string(output)))
@@ -335,8 +386,9 @@ type WorktreeInfo struct {
 	Commit string
 }
 
-// CreateWorktree creates a new git worktree at the specified path with the given branch name
-func CreateWorktree(repoPath, worktreePath, branchName string) error {
+// CreateWorktree creates a new git worktree at the specified path with the given branch name.
+// If base is provided, the new branch is created from that base.
+func CreateWorktree(repoPath, worktreePath, branchName, base string) error {
 	// Check if worktree path already exists
 	if _, err := os.Stat(worktreePath); err == nil {
 		return fmt.Errorf("worktree path already exists: %s", worktreePath)
@@ -357,10 +409,14 @@ func CreateWorktree(repoPath, worktreePath, branchName string) error {
 	var cmd *exec.Cmd
 	if localExists || remoteExists {
 		// Checkout existing branch
-		cmd = exec.Command("git", "-C", repoPath, "worktree", "add", worktreePath, branchName)
+		cmd = gitCommand("-C", repoPath, "worktree", "add", worktreePath, branchName)
 	} else {
 		// Create new branch
-		cmd = exec.Command("git", "-C", repoPath, "worktree", "add", "-b", branchName, worktreePath)
+		args := []string{"-C", repoPath, "worktree", "add", "-b", branchName, worktreePath}
+		if base != "" {
+			args = append(args, base)
+		}
+		cmd = gitCommand(args...)
 	}
 
 	output, err := cmd.CombinedOutput()
@@ -373,7 +429,7 @@ func CreateWorktree(repoPath, worktreePath, branchName string) error {
 
 // RemoveWorktree removes a worktree at the specified path
 func RemoveWorktree(repoPath, worktreePath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "worktree", "remove", worktreePath)
+	cmd := gitCommand("-C", repoPath, "worktree", "remove", worktreePath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to remove worktree: %s", strings.TrimSpace(string(output)))
@@ -383,7 +439,7 @@ func RemoveWorktree(repoPath, worktreePath string) error {
 
 // PruneWorktrees cleans up worktree administrative files
 func PruneWorktrees(repoPath string) error {
-	cmd := exec.Command("git", "-C", repoPath, "worktree", "prune")
+	cmd := gitCommand("-C", repoPath, "worktree", "prune")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to prune worktrees: %s", strings.TrimSpace(string(output)))
@@ -411,7 +467,7 @@ func IsWorktree(path string) (bool, error) {
 
 	// If .git is a directory, it could be the main repo
 	// Check if it's a worktree by looking for the worktree admin files
-	cmd := exec.Command("git", "-C", path, "rev-parse", "--git-common-dir")
+	cmd := gitCommand("-C", path, "rev-parse", "--git-common-dir")
 	output, err := cmd.Output()
 	if err != nil {
 		return false, err
@@ -426,7 +482,7 @@ func IsWorktree(path string) (bool, error) {
 
 // GetMainRepoPath returns the path to the main repository from a worktree
 func GetMainRepoPath(worktreePath string) (string, error) {
-	cmd := exec.Command("git", "-C", worktreePath, "rev-parse", "--git-common-dir")
+	cmd := gitCommand("-C", worktreePath, "rev-parse", "--git-common-dir")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to get common git dir: %w", err)
@@ -444,7 +500,7 @@ func GetMainRepoPath(worktreePath string) (string, error) {
 // HasUncommittedChanges checks if a repository has uncommitted changes (staged or unstaged)
 // Ignores untracked files (files that start with "??")
 func HasUncommittedChanges(repoPath string) (bool, error) {
-	cmd := exec.Command("git", "-C", repoPath, "status", "--porcelain")
+	cmd := gitCommand("-C", repoPath, "status", "--porcelain")
 	output, err := cmd.Output()
 	if err != nil {
 		return false, fmt.Errorf("failed to check git status: %w", err)
@@ -469,7 +525,7 @@ func HasUncommittedChanges(repoPath string) (bool, error) {
 
 func getRepoURLs(path string) ([]string, error) {
 	// Use git command directly to get remote URL (works with worktrees)
-	cmd := exec.Command("git", "-C", path, "remote", "get-url", "origin")
+	cmd := gitCommand("-C", path, "remote", "get-url", "origin")
 	output, err := cmd.Output()
 	if err != nil {
 		var exitErr *exec.ExitError
@@ -488,4 +544,9 @@ func getRepoURLs(path string) ([]string, error) {
 	}
 
 	return []string{url}, nil
+}
+
+func gitCommand(args ...string) *exec.Cmd {
+	fmt.Println(out.Faint("> git " + strings.Join(args, " ")))
+	return exec.Command("git", args...)
 }

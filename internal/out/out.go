@@ -8,6 +8,7 @@ import (
 
 var (
 	highlightStyle = lipgloss.NewStyle().Bold(true)
+	faintStyle     = lipgloss.NewStyle().Faint(true)
 	Check          = lipgloss.NewStyle().Bold(true).Render("✔")
 	Cross          = lipgloss.NewStyle().Bold(true).Render("✘")
 	WarnIcon       = lipgloss.NewStyle().Bold(true).Render("⚠")
@@ -25,6 +26,10 @@ func H(v any) string {
 // Hf highlights with formatting
 func Hf(format string, a ...any) string {
 	return highlightStyle.Render(fmt.Sprintf(format, a...))
+}
+
+func Faint(v any) string {
+	return faintStyle.Render(fmt.Sprint(v))
 }
 
 func Psuccessf(format string, a ...any) {
@@ -45,6 +50,10 @@ func Pfailf(format string, a ...any) {
 
 func Warnf(format string, a ...interface{}) string {
 	return WarnIcon + " " + fmt.Sprintf(format, a...)
+}
+
+func Pwarnf(format string, a ...interface{}) {
+	fmt.Print(Warnf(format, a...))
 }
 
 func Fail(v any) string {

@@ -64,6 +64,7 @@ func prepareRepository(
 
 	// Ensure the main repository exists
 	mainRepoExists := workspace.MainRepoExists(projectName, repoName)
+	var baseBranch string
 	if !mainRepoExists {
 		// Clone the main repository with a branch based on project name
 		projectBranchName := sanitizeName(project.GetTitle(), 30)
@@ -80,6 +81,30 @@ func prepareRepository(
 		}
 		if err := metadata.EnsureMetadataSetup(mainRepoPath, mainMeta); err != nil {
 			return "", repo, fmt.Errorf("failed to setup main repo metadata: %w", err)
+		}
+	} else {
+		// Check for updates in the main branch
+		_ = git.FetchRemote(mainRepoPath, "origin")
+		if db, err := git.GetDefaultBranchName(mainRepoPath); err == nil {
+			baseBranch = db
+			if behind, _ := git.IsBehind(mainRepoPath, baseBranch); behind {
+				var pullChanges bool
+				err := huh.NewConfirm().
+					Title(fmt.Sprintf("There are new changes in the %s branch. Do you want to pull them?", out.H(baseBranch))).
+					Value(&pullChanges).
+					Run()
+				if err != nil {
+					return "", repo, err
+				}
+
+				if pullChanges {
+					if err := git.FastForwardBaseBranch(mainRepoPath, baseBranch); err != nil {
+						out.Pwarnf("Failed to pull changes: %v\n", err)
+					} else {
+						out.Psuccessf("Updated %s branch\n", out.H(baseBranch))
+					}
+				}
+			}
 		}
 	}
 
@@ -120,7 +145,7 @@ func prepareRepository(
 	}
 
 	// Create the worktree
-	if err := createWorktree(ctx, mainRepoPath, worktreePath, branchName); err != nil {
+	if err := createWorktree(ctx, mainRepoPath, worktreePath, branchName, baseBranch); err != nil {
 		return "", repo, err
 	}
 
@@ -215,12 +240,12 @@ func cloneMainRepository(ctx context.Context, repo git.RepoInfo, path string, br
 	return fmt.Errorf("unsupported repository URL: %+v", repo)
 }
 
-func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName string) error {
-	err := git.CreateWorktree(mainRepoPath, worktreePath, branchName)
+func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName, base string) error {
+	err := git.CreateWorktree(mainRepoPath, worktreePath, branchName, base)
 	if err != nil {
 		errStr := err.Error()
 		if strings.Contains(errStr, "already registered worktree") || strings.Contains(errStr, "already exists") {
-			confirmed := false
+			var confirmed bool
 			err := huh.NewConfirm().
 				Title(fmt.Sprintf("Worktree at %s already exists or is registered. Do you want to remove/prune it and try again?", worktreePath)).
 				Value(&confirmed).
@@ -228,6 +253,7 @@ func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName st
 			if err != nil {
 				return fmt.Errorf("confirmation failed: %w", err)
 			}
+
 			if confirmed {
 				fmt.Println("Pruning and removing existing worktree registration...")
 				_ = git.PruneWorktrees(mainRepoPath)
@@ -235,7 +261,7 @@ func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName st
 				_ = os.RemoveAll(worktreePath)
 
 				// Retry
-				err = git.CreateWorktree(mainRepoPath, worktreePath, branchName)
+				err = git.CreateWorktree(mainRepoPath, worktreePath, branchName, base)
 				if err == nil {
 					out.Psuccessf("Worktree %s created successfully after cleanup\n", out.H(worktreePath))
 					return nil
