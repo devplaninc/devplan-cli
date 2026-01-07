@@ -36,6 +36,7 @@ func Execute() error {
 func init() {
 	rootCmd.PersistentFlags().StringVar(&prefs_utils.Domain, "domain", "", "domain to use (app, beta, local)")
 	rootCmd.PersistentFlags().StringVar(&prefs_utils.InstructionFile, "instructions-file", "", "Instructions file to output instructions instead of executing commands directly.")
+	rootCmd.PersistentFlags().BoolVarP(&prefs_utils.Verbose, "verbose", "v", false, "verbose output")
 	if err := rootCmd.PersistentFlags().MarkHidden("domain"); err != nil {
 		fmt.Printf("Failed to initialize CLI (domain flag): %v\n)", err)
 		os.Exit(1)

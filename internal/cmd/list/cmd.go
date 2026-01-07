@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/huh"
+	"github.com/devplaninc/devplan-cli/internal/cmd/common"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
@@ -36,36 +37,39 @@ func runList() {
 	check(err)
 
 	if len(features) == 0 {
-		fmt.Println("No cloned features found. Use 'devplan clone' to clone a feature first.")
+		fmt.Println(out.Failf("No cloned features found. Use 'devplan clone' to clone a feature first."))
 		os.Exit(0)
 	}
 
-	var inputs []huh.Option[string]
+	options, hasAnyChanges := common.BuildFeatureOptions(features)
 
-	for _, f := range features {
-		toCopy := f.FullPath
-		if len(f.Repos) == 1 {
-			fullNames := f.Repos[0].Repo.FullNames
-			if len(fullNames) > 0 {
-				parts := strings.Split(fullNames[0], "/")
-				if len(parts) == 2 {
-					toCopy = path.Join(toCopy, parts[1])
-				}
-			}
-		}
-		inputs = append(inputs, huh.NewOption(fmt.Sprintf("%v - %v", f.GetDisplayName(), toCopy), toCopy))
+	// Show legend if there are any uncommitted changes
+	if hasAnyChanges {
+		common.ShowLegend()
 	}
 
-	var featurePath string
+	var selectedIdx int
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[string]().
+			huh.NewSelect[int]().
 				Title("Choose a feature to copy its path to the clipboard:").
-				Options(inputs...).
-				Value(&featurePath),
+				Options(options...).
+				Value(&selectedIdx),
 		),
 	)
 	check(form.Run())
+
+	selectedFeature := features[selectedIdx]
+	featurePath := selectedFeature.FullPath
+	if len(selectedFeature.Repos) == 1 {
+		fullNames := selectedFeature.Repos[0].Repo.FullNames
+		if len(fullNames) > 0 {
+			parts := strings.Split(fullNames[0], "/")
+			if len(parts) == 2 {
+				featurePath = path.Join(featurePath, parts[1])
+			}
+		}
+	}
 
 	if err := clipboard.WriteAll(featurePath); err != nil {
 		out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)

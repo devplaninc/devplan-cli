@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
@@ -547,6 +548,8 @@ func getRepoURLs(path string) ([]string, error) {
 }
 
 func gitCommand(args ...string) *exec.Cmd {
-	fmt.Println(out.Faint("> git " + strings.Join(args, " ")))
+	if prefs.Verbose {
+		fmt.Println(out.Faint("> git " + strings.Join(args, " ")))
+	}
 	return exec.Command("git", args...)
 }
