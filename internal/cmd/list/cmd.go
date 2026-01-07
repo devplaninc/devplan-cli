@@ -3,8 +3,6 @@ package list_cmd
 import (
 	"fmt"
 	"os"
-	"path"
-	"strings"
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/huh"
@@ -61,15 +59,6 @@ func runList() {
 
 	selectedFeature := features[selectedIdx]
 	featurePath := selectedFeature.FullPath
-	if len(selectedFeature.Repos) == 1 {
-		fullNames := selectedFeature.Repos[0].Repo.FullNames
-		if len(fullNames) > 0 {
-			parts := strings.Split(fullNames[0], "/")
-			if len(parts) == 2 {
-				featurePath = path.Join(featurePath, parts[1])
-			}
-		}
-	}
 
 	if err := clipboard.WriteAll(featurePath); err != nil {
 		out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)
