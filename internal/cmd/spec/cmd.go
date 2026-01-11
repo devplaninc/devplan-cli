@@ -19,6 +19,7 @@ func create() *cobra.Command {
 		Aliases: []string{"specs"},
 	}
 	cmd.AddCommand(startCmd)
+	cmd.AddCommand(pullCmd)
 	return cmd
 }
 
