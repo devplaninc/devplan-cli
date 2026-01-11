@@ -35,3 +35,5 @@ bin/
 **/devplan_current_feature*.md*
 !.windsurf/rules/devplan_current_feature*.md
 /.claude/
+/specs/
+/.mcp.json
