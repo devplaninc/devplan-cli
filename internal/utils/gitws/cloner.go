@@ -17,6 +17,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
+	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/documents"
 )
 
 type InteractiveCloneResult struct {
@@ -73,12 +74,7 @@ func prepareRepository(
 		}
 
 		// Write metadata for the main repository
-		mainMeta := metadata.Metadata{
-			ProjectID:   project.GetId(),
-			ProjectName: project.GetTitle(),
-			RepoURL:     repo.URLs[0],
-			RepoName:    repo.GetFullName(),
-		}
+		mainMeta := generateMetadata(repo, target, false)
 		if err := metadata.EnsureMetadataSetup(mainRepoPath, mainMeta); err != nil {
 			return "", repo, fmt.Errorf("failed to setup main repo metadata: %w", err)
 		}
@@ -150,21 +146,7 @@ func prepareRepository(
 	}
 
 	// Write metadata for the worktree
-	worktreeMeta := metadata.Metadata{
-		ProjectID:   project.GetId(),
-		ProjectName: project.GetTitle(),
-		RepoURL:     repo.URLs[0],
-		RepoName:    repo.GetFullName(),
-	}
-
-	// Add task information if available
-	if task := target.Task; task != nil {
-		worktreeMeta.TaskID = task.GetId()
-		worktreeMeta.TaskName = task.GetTitle()
-	} else if feature := target.SpecificFeature; feature != nil {
-		worktreeMeta.TaskID = feature.GetId()
-		worktreeMeta.TaskName = feature.GetTitle()
-	}
+	worktreeMeta := generateMetadata(repo, target, true)
 
 	if err := metadata.EnsureMetadataSetup(worktreePath, worktreeMeta); err != nil {
 		return "", repo, fmt.Errorf("failed to setup worktree metadata: %w", err)
@@ -386,4 +368,42 @@ func checkIfURL(repoName string) (git.RepoInfo, bool, error) {
 		return repo, err == nil, err
 	}
 	return git.RepoInfo{}, false, nil
+}
+
+func generateMetadata(repo git.RepoInfo, target picker.DevTarget, includeTaskInfo bool) metadata.Metadata {
+	project := target.ProjectWithDocs.GetProject()
+	meta := metadata.Metadata{
+		ProjectID:        project.GetId(),
+		ProjectName:      project.GetTitle(),
+		RepoURL:          repo.URLs[0],
+		RepoName:         repo.GetFullName(),
+		ProjectNumericID: fmt.Sprintf("%v", project.GetNumericId()),
+	}
+
+	if !includeTaskInfo {
+		return meta
+	}
+
+	fillStory := func(feat *documents.DocumentEntity) {
+		meta.StoryID = feat.GetId()
+		meta.StoryName = feat.GetTitle()
+		meta.StoryNumericID = fmt.Sprintf("%v", feat.GetNumericId())
+	}
+
+	// Add task information if available
+	if task := target.Task; task != nil {
+		meta.TaskID = task.GetId()
+		meta.TaskName = task.GetTitle()
+		meta.TaskNumericID = fmt.Sprintf("%v", task.GetNumericId())
+		for _, d := range target.ProjectWithDocs.GetDocs() {
+			if d.GetId() == task.GetParentId() && d.GetType() == documents.DocumentType_FEATURE {
+				fillStory(d)
+				break
+			}
+		}
+	} else if feature := target.SpecificFeature; feature != nil {
+		fillStory(feature)
+	}
+
+	return meta
 }
