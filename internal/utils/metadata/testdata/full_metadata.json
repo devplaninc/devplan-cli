@@ -1,8 +1,13 @@
 {
   "taskId": "task-123",
+  "storyId": "story-789",
   "taskName": "Add user authentication",
+  "storyName": "User Auth Story",
   "projectId": "proj-456",
   "projectName": "My Project",
   "repoUrl": "https://github.com/devplaninc/webapp.git",
-  "repoName": "devplaninc/webapp"
+  "repoName": "devplaninc/webapp",
+  "projectNumericId": "101",
+  "storyNumericId": "202",
+  "taskNumericId": "303"
 }

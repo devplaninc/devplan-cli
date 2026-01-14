@@ -8,23 +8,29 @@ import (
 )
 
 const (
-	devplanDir       = ".devplan"
+	devplanDir       = ".devplan_meta"
 	metaFile         = "meta.json"
 	gitignore        = ".gitignore"
 	gitignoreContent = "*\n"
 )
 
-// Metadata contains information stored in .devplan/meta.json
+// Metadata contains information stored in .devplan_meta/meta.json
 type Metadata struct {
 	TaskID      string `json:"taskId,omitempty"`
+	StoryID     string `json:"storyId,omitempty"`
 	TaskName    string `json:"taskName,omitempty"`
+	StoryName   string `json:"storyName,omitempty"`
 	ProjectID   string `json:"projectId,omitempty"`
 	ProjectName string `json:"projectName,omitempty"`
 	RepoURL     string `json:"repoUrl,omitempty"`
 	RepoName    string `json:"repoName,omitempty"`
+
+	ProjectNumericID string `json:"projectNumericId,omitempty"`
+	StoryNumericID   string `json:"storyNumericId,omitempty"`
+	TaskNumericID    string `json:"taskNumericId,omitempty"`
 }
 
-// GetDevplanDir returns the path to the .devplan directory
+// GetDevplanDir returns the path to the .devplan_meta directory
 func GetDevplanDir(repoPath string) string {
 	return filepath.Join(repoPath, devplanDir)
 }
@@ -34,16 +40,16 @@ func GetMetaFilePath(repoPath string) string {
 	return filepath.Join(GetDevplanDir(repoPath), metaFile)
 }
 
-// EnsureDevplanDir creates the .devplan directory if it doesn't exist
+// EnsureDevplanDir creates the .devplan_meta directory if it doesn't exist
 func EnsureDevplanDir(repoPath string) error {
 	devplanPath := GetDevplanDir(repoPath)
 	if err := os.MkdirAll(devplanPath, 0755); err != nil {
-		return fmt.Errorf("failed to create .devplan directory: %w", err)
+		return fmt.Errorf("failed to create %v directory: %w", devplanDir, err)
 	}
 	return nil
 }
 
-// WriteMetadata writes metadata to .devplan/meta.json
+// WriteMetadata writes metadata to .devplan_meta/meta.json
 func WriteMetadata(repoPath string, meta Metadata) error {
 	if err := EnsureDevplanDir(repoPath); err != nil {
 		return err
@@ -62,7 +68,7 @@ func WriteMetadata(repoPath string, meta Metadata) error {
 	return nil
 }
 
-// ReadMetadata reads metadata from .devplan/meta.json
+// ReadMetadata reads metadata from .devplan_meta/meta.json
 func ReadMetadata(repoPath string) (*Metadata, error) {
 	metaPath := GetMetaFilePath(repoPath)
 	data, err := os.ReadFile(metaPath)
@@ -81,7 +87,7 @@ func ReadMetadata(repoPath string) (*Metadata, error) {
 	return &meta, nil
 }
 
-// EnsureGitignore ensures .devplan/.gitignore exists and contains the correct content
+// EnsureGitignore ensures .devplan_meta/.gitignore exists and contains the correct content
 func EnsureGitignore(repoPath string) error {
 	if err := EnsureDevplanDir(repoPath); err != nil {
 		return err
@@ -94,7 +100,7 @@ func EnsureGitignore(repoPath string) error {
 		// File exists, check content
 		content, err := os.ReadFile(gitignorePath)
 		if err != nil {
-			return fmt.Errorf("failed to read .devplan/.gitignore: %w", err)
+			return fmt.Errorf("failed to read %v/.gitignore: %w", devplanDir, err)
 		}
 		// If content is correct, nothing to do
 		if string(content) == gitignoreContent {
@@ -104,7 +110,7 @@ func EnsureGitignore(repoPath string) error {
 
 	// Write gitignore
 	if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
-		return fmt.Errorf("failed to write .devplan/.gitignore: %w", err)
+		return fmt.Errorf("failed to write %v/.gitignore: %w", devplanDir, err)
 	}
 
 	return nil

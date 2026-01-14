@@ -18,17 +18,17 @@ func TestGetDevplanDir(t *testing.T) {
 		{
 			name:     "simple path",
 			repoPath: "/path/to/repo",
-			expected: filepath.Join("/path/to/repo", ".devplan"),
+			expected: filepath.Join("/path/to/repo", ".devplan_meta"),
 		},
 		{
 			name:     "path with trailing slash",
 			repoPath: "/path/to/repo/",
-			expected: filepath.Join("/path/to/repo/", ".devplan"),
+			expected: filepath.Join("/path/to/repo/", ".devplan_meta"),
 		},
 		{
 			name:     "relative path",
 			repoPath: "repo",
-			expected: filepath.Join("repo", ".devplan"),
+			expected: filepath.Join("repo", ".devplan_meta"),
 		},
 	}
 
@@ -49,12 +49,12 @@ func TestGetMetaFilePath(t *testing.T) {
 		{
 			name:     "simple path",
 			repoPath: "/path/to/repo",
-			expected: filepath.Join("/path/to/repo", ".devplan", "meta.json"),
+			expected: filepath.Join("/path/to/repo", ".devplan_meta", "meta.json"),
 		},
 		{
 			name:     "relative path",
 			repoPath: "repo",
-			expected: filepath.Join("repo", ".devplan", "meta.json"),
+			expected: filepath.Join("repo", ".devplan_meta", "meta.json"),
 		},
 	}
 
@@ -97,12 +97,17 @@ func TestWriteAndReadMetadata(t *testing.T) {
 	t.Run("write and read full metadata", func(t *testing.T) {
 		repoPath := filepath.Join(tempDir, "repo1")
 		meta := Metadata{
-			TaskID:      "task-123",
-			TaskName:    "Add feature",
-			ProjectID:   "proj-456",
-			ProjectName: "My Project",
-			RepoURL:     "https://github.com/user/repo.git",
-			RepoName:    "user/repo",
+			TaskID:           "task-123",
+			TaskName:         "Add feature",
+			StoryID:          "story-789",
+			StoryName:        "New Story",
+			ProjectID:        "proj-456",
+			ProjectName:      "My Project",
+			RepoURL:          "https://github.com/user/repo.git",
+			RepoName:         "user/repo",
+			ProjectNumericID: "111",
+			StoryNumericID:   "222",
+			TaskNumericID:    "333",
 		}
 
 		err := WriteMetadata(repoPath, meta)
@@ -120,10 +125,15 @@ func TestWriteAndReadMetadata(t *testing.T) {
 
 		assert.Equal(t, meta.TaskID, readMeta.TaskID)
 		assert.Equal(t, meta.TaskName, readMeta.TaskName)
+		assert.Equal(t, meta.StoryID, readMeta.StoryID)
+		assert.Equal(t, meta.StoryName, readMeta.StoryName)
 		assert.Equal(t, meta.ProjectID, readMeta.ProjectID)
 		assert.Equal(t, meta.ProjectName, readMeta.ProjectName)
 		assert.Equal(t, meta.RepoURL, readMeta.RepoURL)
 		assert.Equal(t, meta.RepoName, readMeta.RepoName)
+		assert.Equal(t, meta.ProjectNumericID, readMeta.ProjectNumericID)
+		assert.Equal(t, meta.StoryNumericID, readMeta.StoryNumericID)
+		assert.Equal(t, meta.TaskNumericID, readMeta.TaskNumericID)
 	})
 
 	t.Run("write and read partial metadata", func(t *testing.T) {
@@ -254,12 +264,17 @@ func TestMetadataJSONFormat(t *testing.T) {
 	t.Run("full metadata matches expected JSON format", func(t *testing.T) {
 		repoPath := filepath.Join(tempDir, "repo1")
 		meta := Metadata{
-			TaskID:      "task-123",
-			TaskName:    "Add user authentication",
-			ProjectID:   "proj-456",
-			ProjectName: "My Project",
-			RepoURL:     "https://github.com/devplaninc/webapp.git",
-			RepoName:    "devplaninc/webapp",
+			TaskID:           "task-123",
+			StoryID:          "story-789",
+			TaskName:         "Add user authentication",
+			StoryName:        "User Auth Story",
+			ProjectID:        "proj-456",
+			ProjectName:      "My Project",
+			RepoURL:          "https://github.com/devplaninc/webapp.git",
+			RepoName:         "devplaninc/webapp",
+			ProjectNumericID: "101",
+			StoryNumericID:   "202",
+			TaskNumericID:    "303",
 		}
 
 		err := WriteMetadata(repoPath, meta)
