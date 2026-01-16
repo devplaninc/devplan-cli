@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/devplaninc/devplan-cli/internal/pb/config";
+
+import "google/protobuf/timestamp.proto";
+
+// RecentActivityConfig represents the on-disk recent activity configuration.
+message RecentActivityConfig {
+  repeated RecentActivityEntry entries = 1;
+}
+
+// RecentActivityEntry represents a single recent activity item.
+message RecentActivityEntry {
+  RecentActivityEntryType type = 1;
+  string task_id = 2;
+  google.protobuf.Timestamp last_activity = 3;
+  string source = 4;
+}
+
+enum RecentActivityEntryType {
+  ENTRY_TYPE_UNSPECIFIED = 0;
+  ENTRY_TYPE_TASK = 1;
+  ENTRY_TYPE_PROJECT = 2;
+}

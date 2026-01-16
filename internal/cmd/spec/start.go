@@ -2,6 +2,7 @@ package spec
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/devplaninc/devplan-cli/internal/devplan"
 	"github.com/devplaninc/devplan-cli/internal/utils/converters"
@@ -9,6 +10,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
 	"github.com/devplaninc/devplan-cli/internal/utils/picker"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
+	"github.com/devplaninc/devplan-cli/internal/utils/recentactivity"
 	"github.com/opensdd/osdd-api/clients/go/osdd/recipes"
 	"github.com/opensdd/osdd-core/core"
 	"github.com/opensdd/osdd-core/core/executable"
@@ -34,6 +36,9 @@ func createStartCmd() *cobra.Command {
 			docResp, err := cl.GetDocument(companyID, taskID)
 			check(err)
 			task := docResp.GetDocument()
+			if err := recentactivity.RecordTaskActivity(taskID, "spec_start"); err != nil {
+				slog.Debug("Failed to record recent task activity", "taskID", taskID, "err", err)
+			}
 			repoPath := path
 			if repoPath == "" {
 				details, err := converters.GetTaskDetails(task)
