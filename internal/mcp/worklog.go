@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/devplaninc/devplan-cli/internal/devplan"
+	"github.com/devplaninc/devplan-cli/internal/utils/recentactivity"
 	"github.com/devplaninc/webapp/golang/pb/api/devplan/types/worklog"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -47,6 +48,11 @@ func (s *Server) reportWorkLog(ctx context.Context, _ *mcp.CallToolRequest, inpu
 	if input.CompanyID > 0 && input.TaskID != "" {
 		// Note: We don't fail the worklog submission if syncer initialization fails
 		_ = s.addSyncer(ctx, input.CompanyID, input.TaskID)
+	}
+	if input.TaskID != "" {
+		if err := recentactivity.RecordTaskActivity(input.TaskID, "worklog_upload"); err != nil {
+			slog.Warn("Failed to record recent task activity", "taskID", input.TaskID, "err", err)
+		}
 	}
 
 	return nil, WorkLogReportOutput{}, err

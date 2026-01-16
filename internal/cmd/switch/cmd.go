@@ -3,6 +3,7 @@ package switch_cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -11,7 +12,9 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/common"
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
+	"github.com/devplaninc/devplan-cli/internal/utils/metadata"
 	"github.com/devplaninc/devplan-cli/internal/utils/prefs"
+	"github.com/devplaninc/devplan-cli/internal/utils/recentactivity"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/opensdd/osdd-core/core/executable"
 	"github.com/spf13/cobra"
@@ -46,6 +49,8 @@ func runSwitch(ideName string) {
 		os.Exit(1)
 	}
 
+	features = recentactivity.SortClonedFeatures(features)
+
 	// Build options for selection with full paths
 	options, hasAnyChanges := common.BuildFeatureOptions(features)
 
@@ -72,6 +77,13 @@ func runSwitch(ideName string) {
 
 	selectedFeature := features[selectedIdx]
 	featurePath := selectedFeature.FullPath
+	if meta, err := metadata.ReadMetadata(featurePath); err != nil {
+		slog.Debug("Failed to read feature metadata", "path", featurePath, "err", err)
+	} else if meta != nil && meta.TaskID != "" {
+		if err := recentactivity.RecordTaskActivity(meta.TaskID, "switch"); err != nil {
+			slog.Debug("Failed to record recent task activity", "taskID", meta.TaskID, "err", err)
+		}
+	}
 
 	if ideName != "" {
 		ideV := ide.IDE(strings.ToLower(ideName))

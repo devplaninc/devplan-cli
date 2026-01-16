@@ -7,9 +7,9 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/cmd/common"
-	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
-
 	"github.com/devplaninc/devplan-cli/internal/out"
+	"github.com/devplaninc/devplan-cli/internal/utils/recentactivity"
+	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +38,8 @@ func runList() {
 		fmt.Println(out.Failf("No cloned features found. Use 'devplan clone' to clone a feature first."))
 		os.Exit(0)
 	}
+
+	features = recentactivity.SortClonedFeatures(features)
 
 	options, hasAnyChanges := common.BuildFeatureOptions(features)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/out"
 	"github.com/devplaninc/devplan-cli/internal/utils/git"
 	"github.com/devplaninc/devplan-cli/internal/utils/ide"
+	"github.com/devplaninc/devplan-cli/internal/utils/recentactivity"
 	"github.com/devplaninc/devplan-cli/internal/utils/workspace"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +38,8 @@ func runClean() {
 		out.Psuccessf("Nothing to clean!")
 		return
 	}
+
+	clonedFeatures = recentactivity.SortClonedFeatures(clonedFeatures)
 
 	// Build options for selection with full paths
 	options, hasAnyChanges := common.BuildFeatureOptions(clonedFeatures)
