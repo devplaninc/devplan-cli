@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.8.0
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/devplaninc/webapp v0.9.0
+	github.com/devplaninc/webapp v0.11.0
 	github.com/go-git/go-git/v5 v5.17.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/opensdd/osdd-api/clients/go v0.7.1

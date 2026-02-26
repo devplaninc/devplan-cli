@@ -61,13 +61,32 @@ func sortFeaturesByActivity(
 		item := featureActivity{
 			feature: feature,
 		}
-		meta, err := metadata.ReadMetadata(feature.FullPath)
-		if err != nil {
-			slog.Debug("Failed to read feature metadata", "path", feature.FullPath, "err", err)
-		} else if meta != nil && meta.TaskID != "" {
-			if ts, ok := activity[meta.TaskID]; ok {
-				item.hasActivity = true
-				item.activityTime = ts
+		// Check metadata at the feature path itself and, for feature workspaces,
+		// also in each child repo. Use the most recent activity found.
+		metaPaths := []string{feature.FullPath}
+		if feature.IsFeatureWorkspace {
+			metaPaths = append(metaPaths, feature.GetRepoPaths()...)
+		}
+		for _, metaPath := range metaPaths {
+			meta, err := metadata.ReadMetadata(metaPath)
+			if err != nil {
+				slog.Debug("Failed to read feature metadata", "path", metaPath, "err", err)
+				continue
+			}
+			if meta == nil {
+				continue
+			}
+			// Look up by TaskID first, then StoryID (used by feature workspaces)
+			for _, id := range []string{meta.TaskID, meta.StoryID} {
+				if id == "" {
+					continue
+				}
+				if ts, ok := activity[id]; ok {
+					if !item.hasActivity || ts.After(item.activityTime) {
+						item.hasActivity = true
+						item.activityTime = ts
+					}
+				}
 			}
 		}
 		items = append(items, item)

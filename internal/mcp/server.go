@@ -16,7 +16,8 @@ import (
 func NewServer() *Server {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "devplan", Version: "v1.0.0"}, nil)
 	server := &Server{srv: srv, syncers: make(map[string]*specsync.Syncer)}
-	mcp.AddTool(srv, &mcp.Tool{Name: "reportWorkLog", Description: "reportWorkLog"}, server.reportWorkLog)
+	mcp.AddTool(srv, &mcp.Tool{Name: "reportWorkLog", Description: "Report a worklog entry scoped to a task. Use this when working on a task-level workflow (defined in focus file)."}, server.reportWorkLog)
+	mcp.AddTool(srv, &mcp.Tool{Name: "reportFeatureWorkLog", Description: "Report a worklog entry scoped to a feature (not a task). Use this when working on a feature-level workflow (defined in focus file)."}, server.reportFeatureWorkLog)
 	return server
 }
 

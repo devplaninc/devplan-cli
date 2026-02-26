@@ -66,3 +66,7 @@ func repoSummariesPath(companyID int32) string {
 func taskSpecsPath(companyID int32, taskID string) string {
 	return fmt.Sprintf("%v/specs", devTaskPath(companyID, taskID))
 }
+
+func devFeatureExecRecipePath(companyID int32, featureID string) string {
+	return fmt.Sprintf("%v/dev/user-story/%v/executable", companyPath(companyID), featureID)
+}

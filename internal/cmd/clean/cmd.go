@@ -66,20 +66,28 @@ func runClean() {
 	featurePath := selectedFeature.FullPath
 	displayPath := ide.PathWithTilde(featurePath)
 
-	// Check for uncommitted changes
+	// Check for uncommitted changes across all repo paths
 	hasChanges := false
 	if len(selectedFeature.Repos) > 0 {
-		var err error
-		hasChanges, err = git.HasUncommittedChanges(featurePath)
-		if err != nil {
-			fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
+		for _, repoPath := range selectedFeature.GetRepoPaths() {
+			changed, err := git.HasUncommittedChanges(repoPath)
+			if err != nil {
+				fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
+			} else if changed {
+				hasChanges = true
+				break
+			}
 		}
 	}
 
 	// Build confirmation message
-	confirmMsg := fmt.Sprintf("Worktree %s will be permanently deleted.", displayPath)
+	entityLabel := "Worktree"
+	if selectedFeature.IsFeatureWorkspace {
+		entityLabel = "Directory"
+	}
+	confirmMsg := fmt.Sprintf("%s %s will be permanently deleted.", entityLabel, displayPath)
 	if hasChanges {
-		confirmMsg = fmt.Sprintf("⚠️  WARNING: %s has uncommitted changes!\n\nWorktree %s will be permanently deleted.", displayPath, displayPath)
+		confirmMsg = fmt.Sprintf("⚠️  WARNING: %s has uncommitted changes!\n\n%s %s will be permanently deleted.", displayPath, entityLabel, displayPath)
 	}
 
 	var confirm bool

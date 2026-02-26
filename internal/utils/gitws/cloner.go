@@ -3,7 +3,9 @@ package gitws
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -344,6 +346,11 @@ func tryRepoClone(ctx context.Context, url string, path string, branchToCreate s
 	return nil
 }
 
+// SanitizeName converts a name to a filesystem-safe format.
+func SanitizeName(name string, maxLen int) string {
+	return sanitizeName(name, maxLen)
+}
+
 func sanitizeName(name string, maxLen int) string {
 	if len(name) > maxLen {
 		name = name[:maxLen]
@@ -368,6 +375,93 @@ func checkIfURL(repoName string) (git.RepoInfo, bool, error) {
 		return repo, err == nil, err
 	}
 	return git.RepoInfo{}, false, nil
+}
+
+// ResolveRepos resolves a list of repository full names to git.RepoInfo objects
+// by matching against the company's available repositories.
+func ResolveRepos(repoNames []string, companyID int32) ([]git.RepoInfo, error) {
+	cl := devplan.NewClient(devplan.Config{})
+	allRepos, err := cl.GetAllRepos(companyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git repositories: %w", err)
+	}
+	byName := make(map[string]git.RepoInfo)
+	for _, repo := range allRepos {
+		byName[repo.GetFullName()] = git.RepoInfo{
+			FullNames: []string{repo.GetFullName()},
+			URLs:      []string{repo.GetUrl()},
+		}
+	}
+
+	var resolved []git.RepoInfo
+	var unresolved []string
+	for _, name := range repoNames {
+		// Try exact match first
+		if info, ok := byName[name]; ok {
+			resolved = append(resolved, info)
+			continue
+		}
+		// Try case-insensitive substring match
+		var matches []string
+		var matchedInfo git.RepoInfo
+		for fullName, info := range byName {
+			if strings.Contains(strings.ToLower(fullName), strings.ToLower(name)) {
+				matches = append(matches, fullName)
+				matchedInfo = info
+			}
+		}
+		found := len(matches) > 0
+		if len(matches) > 1 {
+			slog.Warn("Ambiguous repository name matched multiple repos, using first match", "name", name, "matches", matches)
+		}
+		if found {
+			resolved = append(resolved, matchedInfo)
+		}
+		if !found {
+			unresolved = append(unresolved, name)
+		}
+	}
+	if len(unresolved) > 0 {
+		return nil, fmt.Errorf("failed to resolve repositories: %s", strings.Join(unresolved, ", "))
+	}
+	return resolved, nil
+}
+
+type CloneAllReposResult struct {
+	ParentPath string
+	Repos      []git.RepoInfo
+}
+
+// CloneAllRepos clones multiple repositories into a parent directory using simple git clone (no worktrees).
+// If branchName is non-empty, each cloned repo will have that branch created and checked out.
+// If any clone fails, it returns immediately with an error naming the failed repo.
+// Already-cloned repos are skipped, making the operation idempotent.
+func CloneAllRepos(ctx context.Context, repos []git.RepoInfo, parentPath string, branchName string) (CloneAllReposResult, error) {
+	if err := os.MkdirAll(parentPath, 0755); err != nil {
+		return CloneAllReposResult{}, fmt.Errorf("failed to create workspace directory: %w", err)
+	}
+
+	for _, repo := range repos {
+		repoFullName := repo.GetFullName()
+		parts := strings.Split(repoFullName, "/")
+		shortName := parts[len(parts)-1]
+		targetPath := filepath.Join(parentPath, shortName)
+
+		if _, err := os.Stat(targetPath); err == nil {
+			// Path exists — check if it's already a valid git repo
+			if _, gitErr := git.RepoAtPath(targetPath); gitErr == nil {
+				out.Psuccessf("Repository %s already cloned at %s, skipping\n", out.H(repoFullName), out.H(targetPath))
+				continue
+			}
+			return CloneAllReposResult{}, fmt.Errorf("path %s already exists but is not a valid git repository", targetPath)
+		}
+
+		if err := cloneMainRepository(ctx, repo, targetPath, branchName); err != nil {
+			return CloneAllReposResult{}, fmt.Errorf("failed to clone repository %s: %w", repoFullName, err)
+		}
+	}
+
+	return CloneAllReposResult{ParentPath: parentPath, Repos: repos}, nil
 }
 
 func generateMetadata(repo git.RepoInfo, target picker.DevTarget, includeTaskInfo bool) metadata.Metadata {
