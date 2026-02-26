@@ -51,8 +51,8 @@ github.com/cyphar/filepath-securejoin v0.6.1 h1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVy
 github.com/cyphar/filepath-securejoin v0.6.1/go.mod h1:A8hd4EnAeyujCJRrICiOWqjS1AX0a9kM5XL+NwKoYSc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/devplaninc/webapp v0.9.0 h1:phWa5hNRbd/guq3ojotfM4WJmVT/bQRn7QqsZhlzX+Q=
-github.com/devplaninc/webapp v0.9.0/go.mod h1:Y/2oN9j6YoCzEBDnscLhNkkZmBY2LKJPZXBeX2ym5UI=
+github.com/devplaninc/webapp v0.11.0 h1:6JlZCJhK4J4UfWBlv1Jd1WHB8n2miE3l95GEKNZV+tY=
+github.com/devplaninc/webapp v0.11.0/go.mod h1:Y/2oN9j6YoCzEBDnscLhNkkZmBY2LKJPZXBeX2ym5UI=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=

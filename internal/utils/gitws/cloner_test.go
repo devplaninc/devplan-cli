@@ -63,7 +63,7 @@ func TestGenerateMetadata(t *testing.T) {
 		assert.Equal(t, "201", meta.StoryNumericID)
 	})
 
-	t.Run("worktree metadata with feature", func(t *testing.T) {
+	t.Run("worktree metadata with feature only", func(t *testing.T) {
 		feature := &documents.DocumentEntity{}
 		feature.SetId("feat-1")
 		feature.SetTitle("Feature 1")
@@ -81,4 +81,25 @@ func TestGenerateMetadata(t *testing.T) {
 		assert.Equal(t, "401", meta.StoryNumericID)
 		assert.Empty(t, meta.TaskID)
 	})
+}
+
+func TestSanitizeName(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		maxLen int
+		want   string
+	}{
+		{"basic", "My Project", 30, "my_project"},
+		{"special chars", "Test@Feature#1", 30, "testfeature1"},
+		{"truncation", "very long name that exceeds limit", 10, "very_long_"},
+		{"already clean", "clean_name", 30, "clean_name"},
+		{"mixed case and symbols", "Hello-World!", 30, "helloworld"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SanitizeName(tt.input, tt.maxLen)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

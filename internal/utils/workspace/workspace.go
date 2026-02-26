@@ -58,9 +58,24 @@ func GetProjectFeaturesPath(projectName string) string {
 }
 
 type ClonedFeature struct {
-	DirName  string
-	FullPath string
-	Repos    []ClonedRepo
+	DirName            string
+	FullPath           string
+	Repos              []ClonedRepo
+	IsFeatureWorkspace bool
+}
+
+// GetRepoPaths returns the paths to all git repositories in this feature.
+// For task worktrees (single repo), returns []string{f.FullPath}.
+// For feature workspaces (multiple repos), returns a path for each repo.
+func (f ClonedFeature) GetRepoPaths() []string {
+	if f.IsFeatureWorkspace {
+		var paths []string
+		for _, r := range f.Repos {
+			paths = append(paths, filepath.Join(f.FullPath, r.DirName))
+		}
+		return paths
+	}
+	return []string{f.FullPath}
 }
 
 func (f ClonedFeature) GetDisplayName() string {
@@ -125,7 +140,7 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 				FullPath: fullPath,
 			}
 
-			// Check if it's a git repository
+			// Check if it's a git repository (task worktree pattern)
 			repo, err := git.RepoAtPath(fullPath)
 			if err == nil {
 				feature.Repos = []ClonedRepo{
@@ -135,6 +150,30 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 					},
 				}
 				hasRepo = true
+			} else {
+				// Not a git repo — check if it's a feature workspace with child repos
+				childEntries, childErr := os.ReadDir(fullPath)
+				if childErr == nil {
+					var childRepos []ClonedRepo
+					for _, childEntry := range childEntries {
+						if !childEntry.IsDir() {
+							continue
+						}
+						childPath := filepath.Join(fullPath, childEntry.Name())
+						childRepo, childRepoErr := git.RepoAtPath(childPath)
+						if childRepoErr == nil {
+							childRepos = append(childRepos, ClonedRepo{
+								DirName: childEntry.Name(),
+								Repo:    childRepo,
+							})
+						}
+					}
+					if len(childRepos) > 0 {
+						feature.Repos = childRepos
+						feature.IsFeatureWorkspace = true
+						hasRepo = true
+					}
+				}
 			}
 
 			projectFeatures = append(projectFeatures, feature)
@@ -182,6 +221,14 @@ func GetMainRepoPath(projectName, repoName string) string {
 // Worktree is located at features/{projectName}/{taskName}/
 func GetWorktreePath(projectName, taskName string) string {
 	return filepath.Join(GetProjectFeaturesPath(projectName), taskName)
+}
+
+// GetFeatureWorkspacePath returns the path to a feature workspace containing multiple repos.
+// Feature workspace is located at features/{projectName}/{featureName}/
+// Note: shares the same parent directory as GetWorktreePath (task worktrees). In practice,
+// feature names and task names are sanitized differently, so collisions are unlikely.
+func GetFeatureWorkspacePath(projectName, featureName string) string {
+	return filepath.Join(GetProjectFeaturesPath(projectName), featureName)
 }
 
 // MainRepoExists checks if the main repository for a project exists

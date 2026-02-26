@@ -122,6 +122,14 @@ func (c *Client) GetTaskExecRecipe(companyID int32, taskID string) (*recipes.Exe
 	return unmarshalExecRecipe(result.GetJsonRecipe())
 }
 
+func (c *Client) GetFeatureExecRecipe(companyID int32, featureID string) (*recipes.ExecutableRecipe, error) {
+	result := &company.GetUserStoryRecipeResponse{}
+	if err := c.getParsed(devFeatureExecRecipePath(companyID, featureID), result); err != nil {
+		return nil, err
+	}
+	return unmarshalExecRecipe(result.GetJsonRecipe())
+}
+
 func (c *Client) SubmitWorklogItem(companyID int32, item *worklog.WorkLogItem) (*company.SubmitWorkLogResponse, error) {
 	result := &company.SubmitWorkLogResponse{}
 	req := company.SubmitWorkLogRequest_builder{
