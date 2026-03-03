@@ -250,7 +250,7 @@ func TestPathFunctions(t *testing.T) {
 		assert.Empty(t, features[0].Repos)
 	})
 
-	t.Run("ListClonedFeatures returns subfolders if at least one repo exists", func(t *testing.T) {
+	t.Run("ListClonedFeatures skips non-repo subfolders when repos exist", func(t *testing.T) {
 		// Create a temporary directory for testing
 		tempDir := t.TempDir()
 		viper.Set(workspaceConfigKey, tempDir)
@@ -276,12 +276,10 @@ func TestPathFunctions(t *testing.T) {
 
 		features, err := ListClonedFeatures()
 		assert.NoError(t, err)
-		assert.Len(t, features, 2)
+		assert.Len(t, features, 1)
 
-		// They should be subfolders
-		dirNames := []string{features[0].DirName, features[1].DirName}
-		assert.Contains(t, dirNames, "myproject/repo")
-		assert.Contains(t, dirNames, "myproject/junk")
+		// Only the repo subfolder should be included
+		assert.Equal(t, "myproject/repo", features[0].DirName)
 	})
 
 	t.Run("ListClonedRepos excludes non-git directories", func(t *testing.T) {

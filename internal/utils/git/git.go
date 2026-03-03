@@ -158,6 +158,16 @@ func SetupBranch(repoPath, branchName string) error {
 	return nil
 }
 
+// GetCurrentBranch returns the current branch name for the repository at the given path
+func GetCurrentBranch(repoPath string) (string, error) {
+	cmd := gitCommand("-C", repoPath, "rev-parse", "--abbrev-ref", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func GetRoot() (string, error) {
 	// Use git command to get the root directory (works with worktrees)
 	cmd := gitCommand("rev-parse", "--show-toplevel")

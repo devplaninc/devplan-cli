@@ -49,45 +49,45 @@ func runClean() {
 		common.ShowLegend()
 	}
 
-	var selectedIdx int
+	var selected common.FeatureSelection
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[int]().
+			huh.NewSelect[common.FeatureSelection]().
 				Title("Select a feature to clean up").
 				Options(options...).
-				Value(&selectedIdx),
+				Value(&selected),
 		),
 	)
 
 	err = form.Run()
 	check(err)
 
-	selectedFeature := clonedFeatures[selectedIdx]
-	featurePath := selectedFeature.FullPath
+	selectedFeature := clonedFeatures[selected.FeatureIdx]
+
+	// Prevent deleting a parent folder that contains multiple repos
+	if len(selectedFeature.Repos) > 1 && selected.RepoPath == selectedFeature.FullPath {
+		fmt.Println(out.Failf("Cannot delete the parent folder while it contains multiple repos. Please delete individual repos first."))
+		os.Exit(1)
+	}
+
+	featurePath := selected.RepoPath
+	if featurePath == "" {
+		featurePath = selectedFeature.FullPath
+	}
 	displayPath := ide.PathWithTilde(featurePath)
 
-	// Check for uncommitted changes across all repo paths
+	// Check for uncommitted changes at the selected path
 	hasChanges := false
-	if len(selectedFeature.Repos) > 0 {
-		for _, repoPath := range selectedFeature.GetRepoPaths() {
-			changed, err := git.HasUncommittedChanges(repoPath)
-			if err != nil {
-				fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
-			} else if changed {
-				hasChanges = true
-				break
-			}
-		}
+	if changed, err := git.HasUncommittedChanges(featurePath); err != nil {
+		fmt.Println(out.Warnf("Could not check for uncommitted changes: %v", err))
+	} else if changed {
+		hasChanges = true
 	}
 
 	// Build confirmation message
-	entityLabel := "Worktree"
-	if selectedFeature.IsFeatureWorkspace {
-		entityLabel = "Directory"
-	}
-	confirmMsg := fmt.Sprintf("%s %s will be permanently deleted.", entityLabel, displayPath)
+	confirmMsg := fmt.Sprintf("%s will be permanently deleted.", displayPath)
 	if hasChanges {
-		confirmMsg = fmt.Sprintf("⚠️  WARNING: %s has uncommitted changes!\n\n%s %s will be permanently deleted.", displayPath, entityLabel, displayPath)
+		confirmMsg = fmt.Sprintf("⚠️  WARNING: %s has uncommitted changes!\n\n%s will be permanently deleted.", displayPath, displayPath)
 	}
 
 	var confirm bool
@@ -112,14 +112,9 @@ func runClean() {
 	fmt.Printf("Cleaning up %s...\n", out.H(displayPath))
 
 	// Check if this is a worktree
-	isWorktree := false
-	if len(selectedFeature.Repos) > 0 {
-		var err error
-		isWorktree, err = git.IsWorktree(featurePath)
-		if err != nil {
-			// Could not determine, assume it's not a worktree
-			isWorktree = false
-		}
+	isWorktree, err := git.IsWorktree(featurePath)
+	if err != nil {
+		isWorktree = false
 	}
 
 	// Store the parent directory before deletion

@@ -124,7 +124,6 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 		}
 
 		var projectFeatures []ClonedFeature
-		hasRepo := false
 		for _, subEntry := range subEntries {
 			if !subEntry.IsDir() {
 				continue
@@ -149,7 +148,6 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 						Repo:    repo,
 					},
 				}
-				hasRepo = true
 			} else {
 				// Not a git repo — check if it's a feature workspace with child repos
 				childEntries, childErr := os.ReadDir(fullPath)
@@ -171,15 +169,16 @@ func ListClonedFeatures() ([]ClonedFeature, error) {
 					if len(childRepos) > 0 {
 						feature.Repos = childRepos
 						feature.IsFeatureWorkspace = true
-						hasRepo = true
 					}
 				}
 			}
 
-			projectFeatures = append(projectFeatures, feature)
+			if len(feature.Repos) > 0 {
+				projectFeatures = append(projectFeatures, feature)
+			}
 		}
 
-		if hasRepo {
+		if len(projectFeatures) > 0 {
 			result = append(result, projectFeatures...)
 		} else {
 			// If no repos found in subfolders, just show the project directory

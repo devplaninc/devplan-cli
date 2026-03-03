@@ -48,19 +48,21 @@ func runList() {
 		common.ShowLegend()
 	}
 
-	var selectedIdx int
+	var selected common.FeatureSelection
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[int]().
+			huh.NewSelect[common.FeatureSelection]().
 				Title("Choose a feature to copy its path to the clipboard:").
 				Options(options...).
-				Value(&selectedIdx),
+				Value(&selected),
 		),
 	)
 	check(form.Run())
 
-	selectedFeature := features[selectedIdx]
-	featurePath := selectedFeature.FullPath
+	featurePath := selected.RepoPath
+	if featurePath == "" {
+		featurePath = features[selected.FeatureIdx].FullPath
+	}
 
 	if err := clipboard.WriteAll(featurePath); err != nil {
 		out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)
