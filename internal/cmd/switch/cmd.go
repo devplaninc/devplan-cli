@@ -59,13 +59,13 @@ func runSwitch(ideName string) {
 		common.ShowLegend()
 	}
 
-	var selectedIdx int
+	var selected common.FeatureSelection
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewSelect[int]().
+			huh.NewSelect[common.FeatureSelection]().
 				Title("Select a feature to switch to").
 				Options(options...).
-				Value(&selectedIdx),
+				Value(&selected),
 		),
 	)
 
@@ -75,10 +75,15 @@ func runSwitch(ideName string) {
 		os.Exit(1)
 	}
 
-	selectedFeature := features[selectedIdx]
-	featurePath := selectedFeature.FullPath
-	if meta, err := metadata.ReadMetadata(featurePath); err != nil {
-		slog.Debug("Failed to read feature metadata", "path", featurePath, "err", err)
+	selectedFeature := features[selected.FeatureIdx]
+	featurePath := selected.RepoPath
+	if featurePath == "" {
+		featurePath = selectedFeature.FullPath
+	}
+
+	// Record activity using feature-level metadata
+	if meta, err := metadata.ReadMetadata(selectedFeature.FullPath); err != nil {
+		slog.Debug("Failed to read feature metadata", "path", selectedFeature.FullPath, "err", err)
 	} else if meta != nil && meta.TaskID != "" {
 		if err := recentactivity.RecordTaskActivity(meta.TaskID, "switch"); err != nil {
 			slog.Debug("Failed to record recent task activity", "taskID", meta.TaskID, "err", err)
