@@ -261,10 +261,22 @@ func createWorktree(_ context.Context, mainRepoPath, worktreePath, branchName, b
 }
 
 func cloneBitbucketRepo(ctx context.Context, repo git.RepoInfo, path string, branchToCreate string) error {
+	protocol := prefs.GetLastGitProtocol()
+	httpsURL := fmt.Sprintf("https://bitbucket.org/%s", repo.GetFullName())
+	sshURL := fmt.Sprintf("git@bitbucket.org:%s.git", repo.GetFullName())
+	var urls []urlDef
+	if protocol == prefs.HTTPS {
+		urls = []urlDef{{httpsURL, prefs.HTTPS}, {sshURL, prefs.SSH}}
+	} else {
+		urls = []urlDef{{sshURL, prefs.SSH}, {httpsURL, prefs.HTTPS}}
+	}
 	var err error
-	for _, url := range repo.URLs {
-		err = tryRepoClone(ctx, url, path, branchToCreate)
+	for _, url := range urls {
+		err = tryRepoClone(ctx, url.url, path, branchToCreate)
 		if err == nil {
+			if protocol != url.protocol {
+				prefs.SetLastGitProtocol(url.protocol)
+			}
 			return nil
 		}
 	}
