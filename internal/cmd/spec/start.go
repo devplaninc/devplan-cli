@@ -29,6 +29,7 @@ func createStartCmd() *cobra.Command {
 	var ideType string
 	var path string
 	var branchName string
+	var yolo bool
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start implementation of a task or feature in an AI IDE",
@@ -36,6 +37,7 @@ func createStartCmd() *cobra.Command {
 
 Use -t/--task to start a single task (clones one repo, creates worktree).
 Use -f/--feature to start a feature (clones all referenced repos into a parent folder).
+Use --yolo to skip Codex and Claude permission checks.
 
 Exactly one of -t or -f must be provided.`,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
@@ -102,8 +104,9 @@ Exactly one of -t or -f must be provided.`,
 				execRecipe.GetEntryPoint().SetIdeType(ideType)
 			}
 			genCtx := &core.GenerationContext{
-				ExecRecipe:    execRecipe,
-				OutputCMDOnly: prefs.InstructionFile != "",
+				ExecRecipe:      execRecipe,
+				OutputCMDOnly:   prefs.InstructionFile != "",
+				SkipPermissions: yolo,
 			}
 			r := executable.ForRecipe(execRecipe)
 			_, err := r.Materialize(ctx, genCtx)
@@ -119,6 +122,7 @@ Exactly one of -t or -f must be provided.`,
 	cmd.Flags().StringVarP(&ideType, "ide", "i", "", "IDE to use ('claude', 'cursor-cli' only right now)")
 	cmd.Flags().StringVarP(&path, "path", "p", "", "Path to use as workspace. If provided, skip cloning")
 	cmd.Flags().StringVarP(&branchName, "branch", "b", "", "Branch to checkout after workspace preparation (task mode only)")
+	cmd.Flags().BoolVar(&yolo, "yolo", false, "Skip Codex and Claude permission checks")
 	_ = cmd.MarkFlagRequired("company")
 	_ = cmd.MarkFlagRequired("ide")
 	return cmd

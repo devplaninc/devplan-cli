@@ -13,7 +13,7 @@ require (
 	github.com/go-git/go-git/v5 v5.17.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/opensdd/osdd-api/clients/go v0.8.3
-	github.com/opensdd/osdd-core v0.13.3
+	github.com/opensdd/osdd-core v0.13.5
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
