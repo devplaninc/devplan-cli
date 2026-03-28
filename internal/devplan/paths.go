@@ -70,3 +70,11 @@ func taskSpecsPath(companyID int32, taskID string) string {
 func devFeatureExecRecipePath(companyID int32, featureID string) string {
 	return fmt.Sprintf("%v/dev/user-story/%v/executable", companyPath(companyID), featureID)
 }
+
+func quickWinInitPath(companyID int32) string {
+	return fmt.Sprintf("%v/quick-win-init", companyPath(companyID))
+}
+
+func quickWinInitStatusPath(companyID int32, pendingJobID string) string {
+	return fmt.Sprintf("%v/%v/status", quickWinInitPath(companyID), pendingJobID)
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/devplaninc/devplan-cli/internal/cmd/auth"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clean"
 	"github.com/devplaninc/devplan-cli/internal/cmd/clone"
+	"github.com/devplaninc/devplan-cli/internal/cmd/define"
 	"github.com/devplaninc/devplan-cli/internal/cmd/dev"
 	"github.com/devplaninc/devplan-cli/internal/cmd/focus"
 	list_cmd "github.com/devplaninc/devplan-cli/internal/cmd/list"
@@ -53,5 +54,6 @@ func init() {
 	rootCmd.AddCommand(clean.Cmd)
 	rootCmd.AddCommand(dev.Cmd)
 	rootCmd.AddCommand(mcp.Cmd)
+	rootCmd.AddCommand(define.Cmd)
 	rootCmd.AddCommand(spec.Cmd)
 }

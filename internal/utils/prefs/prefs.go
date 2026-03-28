@@ -59,6 +59,8 @@ func init() {
 	viper.SetConfigType("json")
 	viper.SetEnvPrefix("devplan")
 	viper.AutomaticEnv() // read in environment variables that match
+	// Allow DEVPLAN_API_KEY env var to override the config file api key.
+	_ = viper.BindEnv(apiKeyConfig, "DEVPLAN_API_KEY")
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {

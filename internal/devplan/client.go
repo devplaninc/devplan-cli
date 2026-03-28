@@ -168,6 +168,16 @@ func (c *Client) UploadTaskSpec(companyID int32, taskID string, req *company.Upl
 	return err
 }
 
+func (c *Client) StartQuickWinInit(companyID int32, req *company.StartQuickWinInitRequest) (*company.StartQuickWinInitResponse, error) {
+	result := &company.StartQuickWinInitResponse{}
+	return result, c.postParsed(quickWinInitPath(companyID), req, result)
+}
+
+func (c *Client) GetQuickWinInitStatus(companyID int32, pendingJobID string) (*company.GetQuickWinInitStatusResponse, error) {
+	result := &company.GetQuickWinInitStatusResponse{}
+	return result, c.getParsed(quickWinInitStatusPath(companyID, pendingJobID), result)
+}
+
 func (c *Client) put(path string, data io.Reader, contentType string) ([]byte, error) {
 	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
 
