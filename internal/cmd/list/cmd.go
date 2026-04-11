@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/atotto/clipboard"
+	osc52 "github.com/aymanbagabas/go-osc52/v2"
 	"github.com/charmbracelet/huh"
 	"github.com/devplaninc/devplan-cli/internal/cmd/common"
 	"github.com/devplaninc/devplan-cli/internal/out"
@@ -65,8 +66,18 @@ func runList() {
 	}
 
 	if err := clipboard.WriteAll(featurePath); err != nil {
-		out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)
-		os.Exit(1)
+		// Fall back to OSC 52 escape sequence for SSH/tmux sessions
+		// where no display server is available
+		seq := osc52.New(featurePath)
+		if os.Getenv("TMUX") != "" {
+			seq = seq.Tmux()
+		}
+		if _, err := seq.WriteTo(os.Stderr); err != nil {
+			out.Pfailf("Failed to copy %s to clipboard: %v", out.H(featurePath), err)
+			os.Exit(1)
+		}
+		fmt.Println(out.Successf("Copied %s to clipboard (via terminal)", out.H(featurePath)))
+		return
 	}
 	fmt.Println(out.Successf("Copied %s to clipboard", out.H(featurePath)))
 }
