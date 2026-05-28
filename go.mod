@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/atotto/clipboard v0.1.4
+	github.com/aymanbagabas/go-osc52/v2 v2.0.1
 	github.com/charmbracelet/bubbles v0.21.1-0.20250623103423-23b8fd6302d7
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/huh v0.8.0
@@ -13,7 +14,7 @@ require (
 	github.com/go-git/go-git/v5 v5.17.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/opensdd/osdd-api/clients/go v0.8.3
-	github.com/opensdd/osdd-core v0.13.5
+	github.com/opensdd/osdd-core v0.13.9
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.3.3 // indirect
 	github.com/charmbracelet/x/ansi v0.11.2 // indirect
